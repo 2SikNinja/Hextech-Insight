@@ -1,4 +1,3 @@
-// src/components/summonerSearch.jsx
 import { useState } from 'react'
 import { DatabaseService } from '../database/database-service.js'
 import './styles/summonerSearch.css'
