@@ -42,8 +42,8 @@ function SummonerSearch() {
       if (existingSummoner) {
         setSummoner(existingSummoner)
       } else {
-        // If not found, you would typically call Riot API here
-        // For now, we'll show a message
+        // If not found, call Riot API here
+        // For now show a message
         setError('Summoner not found in database. In a real app, this would fetch from Riot API.')
       }
     } catch (err) {
