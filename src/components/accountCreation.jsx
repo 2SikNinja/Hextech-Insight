@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { DatabaseService } from '../database/database-service.js'
-import './styles/accountCreation.css'
+import '../styles/accountCreation.css'
 
-function AccountCreation() {
+function AccountCreation({ onNavigate }) {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -170,7 +170,7 @@ function AccountCreation() {
               Create Another Account
             </button>
             <button 
-              onClick={() => {/* Navigate to sign in */}}
+              onClick={() => onNavigate('signin')}
               className="signin-button"
             >
               Go to Sign In
@@ -287,7 +287,7 @@ function AccountCreation() {
                 disabled={loading}
               />
               <span className="checkmark"></span>
-              I agree to the <a href="#" onClick={(e) => {e.preventDefault(); /* Navigate to terms */}}>Terms of Service</a> and <a href="#" onClick={(e) => {e.preventDefault(); /* Navigate to privacy */}}>Privacy Policy</a>
+              I agree to the <a href="#" onClick={(e) => {e.preventDefault(); onNavigate('notice')}}>Terms of Service</a> and <a href="#" onClick={(e) => {e.preventDefault(); onNavigate('notice')}}>Privacy Policy</a>
             </label>
           </div>
 
@@ -316,7 +316,7 @@ function AccountCreation() {
         <div className="signin-link">
           Already have an account? 
           <button 
-            onClick={() => {/* Navigate to sign in */}}
+            onClick={() => onNavigate('signin')}
             className="link-button"
           >
             Sign In

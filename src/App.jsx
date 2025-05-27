@@ -17,6 +17,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedSummoner, setSelectedSummoner] = useState(null)
+  const [selectedMatch, setSelectedMatch] = useState(null)
 
   // Check for existing user session on app load
   useEffect(() => {
@@ -55,29 +57,41 @@ function App() {
     }
   }
 
+  // Navigation functions to pass to components
+  const navigateTo = (page, data = null) => {
+    setCurrentPage(page)
+    if (data) {
+      if (page === 'match-history' || page === 'player-stats') {
+        setSelectedSummoner(data)
+      } else if (page === 'specific-match') {
+        setSelectedMatch(data)
+      }
+    }
+  }
+
   const renderNavigation = () => (
     <nav className="main-nav">
       <div className="nav-brand">
-        <h2 onClick={() => setCurrentPage('home')}>Hextech Insight</h2>
+        <h2 onClick={() => navigateTo('home')}>Hextech Insight</h2>
       </div>
       
       <div className="nav-links">
         {user ? (
           <>
             <button 
-              onClick={() => setCurrentPage('search')}
+              onClick={() => navigateTo('search')}
               className={currentPage === 'search' ? 'active' : ''}
             >
               Search
             </button>
             <button 
-              onClick={() => setCurrentPage('favorites')}
+              onClick={() => navigateTo('favorites')}
               className={currentPage === 'favorites' ? 'active' : ''}
             >
               Favorites
             </button>
             <button 
-              onClick={() => setCurrentPage('notice')}
+              onClick={() => navigateTo('notice')}
               className={currentPage === 'notice' ? 'active' : ''}
             >
               Legal
@@ -92,25 +106,25 @@ function App() {
         ) : (
           <>
             <button 
-              onClick={() => setCurrentPage('search')}
+              onClick={() => navigateTo('search')}
               className={currentPage === 'search' ? 'active' : ''}
             >
               Search
             </button>
             <button 
-              onClick={() => setCurrentPage('notice')}
+              onClick={() => navigateTo('notice')}
               className={currentPage === 'notice' ? 'active' : ''}
             >
               Legal
             </button>
             <button 
-              onClick={() => setCurrentPage('signin')}
+              onClick={() => navigateTo('signin')}
               className={currentPage === 'signin' ? 'active' : ''}
             >
               Sign In
             </button>
             <button 
-              onClick={() => setCurrentPage('signup')}
+              onClick={() => navigateTo('signup')}
               className={currentPage === 'signup' ? 'active' : ''}
             >
               Sign Up
@@ -133,14 +147,14 @@ function App() {
         
         <div className="hero-actions">
           <button 
-            onClick={() => setCurrentPage('search')}
+            onClick={() => navigateTo('search')}
             className="primary-action"
           >
             Start Searching
           </button>
           {!user && (
             <button 
-              onClick={() => setCurrentPage('signup')}
+              onClick={() => navigateTo('signup')}
               className="secondary-action"
             >
               Create Account
@@ -182,19 +196,19 @@ function App() {
       case 'home':
         return renderHomePage()
       case 'search':
-        return <SummonerSearch />
+        return <SummonerSearch onNavigate={navigateTo} user={user} />
       case 'signup':
-        return <AccountCreation />
+        return <AccountCreation onNavigate={navigateTo} />
       case 'signin':
-        return <UserSignIn />
+        return <UserSignIn onNavigate={navigateTo} />
       case 'favorites':
-        return user ? <UserFavorites /> : renderHomePage()
+        return user ? <UserFavorites onNavigate={navigateTo} user={user} /> : renderHomePage()
       case 'match-history':
-        return <MatchHistory />
+        return <MatchHistory summoner={selectedSummoner} onNavigate={navigateTo} />
       case 'player-stats':
-        return <PlayerStats />
+        return <PlayerStats summoner={selectedSummoner} onNavigate={navigateTo} />
       case 'specific-match':
-        return <SpecificMatch />
+        return <SpecificMatch match={selectedMatch} onNavigate={navigateTo} />
       case 'notice':
         return <RiotNotice />
       default:

@@ -1,0 +1,495 @@
+.match-history {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2rem;
+	background: linear-gradient(135deg, #0a1428 0%, #1e2328 50%, #0f1419 100%);
+	min-height: 100vh;
+	color: #f0e6d2;
+}
+
+/* Header Section */
+.match-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	padding: 2rem;
+	background: rgba(16, 29, 40, 0.9);
+	backdrop-filter: blur(10px);
+	border-radius: 16px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+	border: 1px solid rgba(200, 155, 60, 0.3);
+}
+
+.summoner-info h1 {
+	color: #c89b3c;
+	font-size: 2.5rem;
+	margin-bottom: 0.5rem;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.summoner-info p {
+	color: #cdbe91;
+	font-size: 1.1rem;
+	opacity: 0.9;
+}
+
+.back-button {
+	background: rgba(200, 155, 60, 0.1);
+	color: #c89b3c;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+	padding: 0.8rem 1.5rem;
+	border-radius: 8px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.back-button:hover {
+	background: rgba(200, 155, 60, 0.2);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(200, 155, 60, 0.3);
+}
+
+/* Filter Section */
+.match-filters {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 2rem;
+	padding: 1rem;
+	background: rgba(16, 29, 40, 0.6);
+	border-radius: 12px;
+	border: 1px solid rgba(200, 155, 60, 0.2);
+	flex-wrap: wrap;
+}
+
+.match-filters button {
+	background: rgba(0, 0, 0, 0.3);
+	color: #cdbe91;
+	border: 1px solid rgba(200, 155, 60, 0.3);
+	padding: 0.6rem 1.2rem;
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+}
+
+.match-filters button:hover {
+	color: #f0e6d2;
+	border-color: rgba(200, 155, 60, 0.5);
+	background: rgba(200, 155, 60, 0.1);
+}
+
+.match-filters button.active {
+	background: #c89b3c;
+	color: #0f1419;
+	border-color: #c89b3c;
+	font-weight: 700;
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state,
+.empty-state {
+	text-align: center;
+	padding: 4rem 2rem;
+	background: rgba(16, 29, 40, 0.6);
+	border-radius: 16px;
+	border: 1px solid rgba(200, 155, 60, 0.2);
+}
+
+.loading-state .loading-spinner {
+	width: 50px;
+	height: 50px;
+	border: 4px solid rgba(200, 155, 60, 0.3);
+	border-top: 4px solid #c89b3c;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.loading-state p,
+.error-state p,
+.empty-state p {
+	color: #cdbe91;
+	font-size: 1.1rem;
+	margin: 1rem 0;
+}
+
+.error-state h2,
+.empty-state h3 {
+	color: #c89b3c;
+	margin-bottom: 1rem;
+}
+
+.error-state button {
+	background: linear-gradient(135deg, #c89b3c 0%, #f0e6d2 100%);
+	color: #0f1419;
+	border: none;
+	padding: 1rem 2rem;
+	border-radius: 8px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.error-state button:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(200, 155, 60, 0.4);
+}
+
+/* Error Message */
+.error-message {
+	background: rgba(255, 71, 87, 0.1);
+	color: #ff4757;
+	padding: 1rem 1.5rem;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 71, 87, 0.3);
+	font-size: 1rem;
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+/* Matches List */
+.matches-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.match-card {
+	display: grid;
+	grid-template-columns: auto auto 1fr auto auto auto;
+	gap: 1.5rem;
+	align-items: center;
+	padding: 1.5rem;
+	background: rgba(16, 29, 40, 0.8);
+	border-radius: 12px;
+	border-left: 4px solid;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	backdrop-filter: blur(10px);
+}
+
+.match-card.win {
+	border-left-color: #2ed573;
+	box-shadow: 0 4px 16px rgba(46, 213, 115, 0.1);
+}
+
+.match-card.loss {
+	border-left-color: #ff4757;
+	box-shadow: 0 4px 16px rgba(255, 71, 87, 0.1);
+}
+
+.match-card:hover {
+	transform: translateY(-2px);
+	background: rgba(16, 29, 40, 0.95);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.match-card.win:hover {
+	box-shadow: 0 8px 32px rgba(46, 213, 115, 0.2);
+}
+
+.match-card.loss:hover {
+	box-shadow: 0 8px 32px rgba(255, 71, 87, 0.2);
+}
+
+/* Match Card Sections */
+.match-result {
+	text-align: center;
+	min-width: 80px;
+}
+
+.result-text {
+	display: block;
+	font-weight: 700;
+	font-size: 0.9rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.match-card.win .result-text {
+	color: #2ed573;
+}
+
+.match-card.loss .result-text {
+	color: #ff4757;
+}
+
+.time-ago {
+	display: block;
+	font-size: 0.8rem;
+	color: #a09b8c;
+	margin-top: 0.25rem;
+}
+
+.match-info {
+	text-align: center;
+	min-width: 100px;
+}
+
+.game-mode {
+	font-size: 0.9rem;
+	color: #cdbe91;
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+}
+
+.duration {
+	font-size: 0.8rem;
+	color: #a09b8c;
+}
+
+.champion-info {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.champion-image {
+	position: relative;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	overflow: hidden;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+}
+
+.champion-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.champion-details {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.champion-name {
+	color: #f0e6d2;
+	font-weight: 600;
+	font-size: 0.9rem;
+}
+
+.summoner-spells {
+	display: flex;
+	gap: 2px;
+}
+
+.summoner-spells img {
+	width: 20px;
+	height: 20px;
+	border-radius: 4px;
+	border: 1px solid rgba(200, 155, 60, 0.2);
+}
+
+.match-stats {
+	text-align: center;
+	min-width: 120px;
+}
+
+.kda-text {
+	display: block;
+	color: #f0e6d2;
+	font-weight: 700;
+	font-size: 1.1rem;
+	margin-bottom: 0.25rem;
+}
+
+.kda-ratio {
+	display: block;
+	color: #cdbe91;
+	font-size: 0.8rem;
+}
+
+.additional-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin-top: 0.5rem;
+}
+
+.additional-stats span {
+	color: #a09b8c;
+	font-size: 0.7rem;
+}
+
+.items {
+	display: flex;
+	gap: 2px;
+	justify-content: center;
+}
+
+.item-slot {
+	width: 28px;
+	height: 28px;
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid rgba(200, 155, 60, 0.2);
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.item-slot img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.view-details {
+	color: #c89b3c;
+	font-size: 0.8rem;
+	text-align: center;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	min-width: 100px;
+}
+
+.match-card:hover .view-details {
+	opacity: 1;
+}
+
+/* Match Actions */
+.match-actions {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin-top: 3rem;
+	padding-top: 2rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.match-actions button {
+	background: rgba(200, 155, 60, 0.1);
+	color: #c89b3c;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+	padding: 1rem 2rem;
+	border-radius: 8px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.match-actions button:hover {
+	background: rgba(200, 155, 60, 0.2);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(200, 155, 60, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+	.match-card {
+		grid-template-columns: auto auto 1fr auto;
+		gap: 1rem;
+	}
+
+	.items,
+	.view-details {
+		display: none;
+	}
+}
+
+@media (max-width: 768px) {
+	.match-history {
+		padding: 1rem;
+	}
+
+	.match-header {
+		flex-direction: column;
+		gap: 1rem;
+		text-align: center;
+		padding: 1.5rem;
+	}
+
+	.summoner-info h1 {
+		font-size: 2rem;
+	}
+
+	.match-filters {
+		justify-content: center;
+	}
+
+	.match-card {
+		grid-template-columns: auto 1fr auto;
+		gap: 1rem;
+		padding: 1rem;
+	}
+
+	.match-info {
+		display: none;
+	}
+
+	.champion-info {
+		gap: 0.8rem;
+	}
+
+	.champion-image {
+		width: 40px;
+		height: 40px;
+	}
+
+	.match-actions {
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.match-actions button {
+		width: 100%;
+		max-width: 300px;
+	}
+}
+
+@media (max-width: 480px) {
+	.match-filters {
+		flex-direction: column;
+	}
+
+	.match-filters button {
+		width: 100%;
+	}
+
+	.match-card {
+		grid-template-columns: 1fr auto;
+		gap: 0.8rem;
+	}
+
+	.match-result {
+		grid-column: 1 / -1;
+		margin-bottom: 0.5rem;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+		padding-bottom: 0.5rem;
+	}
+
+	.champion-image {
+		width: 36px;
+		height: 36px;
+	}
+
+	.summoner-spells img {
+		width: 16px;
+		height: 16px;
+	}
+}
