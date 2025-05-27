@@ -1,46 +1,39 @@
 const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
 
-// API Base URLs for different regions
-const REGIONAL_ENDPOINTS = {
-  // Americas
-  'na1': 'https://na1.api.riotgames.com',
-  'br1': 'https://br1.api.riotgames.com',
-  'la1': 'https://la1.api.riotgames.com',
-  'la2': 'https://la2.api.riotgames.com',
-  
-  // Asia
-  'kr': 'https://kr.api.riotgames.com',
-  'jp1': 'https://jp1.api.riotgames.com',
-  
-  // Europe
-  'euw1': 'https://euw1.api.riotgames.com',
-  'eun1': 'https://eun1.api.riotgames.com',
-  'tr1': 'https://tr1.api.riotgames.com',
-  'ru': 'https://ru.api.riotgames.com',
-  
-  // Oceania
-  'oc1': 'https://oc1.api.riotgames.com'
-};
-
-// Regional routing values for match data
+// Continental endpoints for Account-V1 API
 const CONTINENTAL_ENDPOINTS = {
   'americas': 'https://americas.api.riotgames.com',
-  'asia': 'https://asia.api.riotgames.com',
+  'asia': 'https://asia.api.riotgames.com', 
   'europe': 'https://europe.api.riotgames.com',
   'sea': 'https://sea.api.riotgames.com'
 };
 
+// Regional endpoints for Summoner-V4 API
+const REGIONAL_ENDPOINTS = {
+  'na1': 'https://na1.api.riotgames.com',
+  'br1': 'https://br1.api.riotgames.com',
+  'la1': 'https://la1.api.riotgames.com',
+  'la2': 'https://la2.api.riotgames.com',
+  'kr': 'https://kr.api.riotgames.com',
+  'jp1': 'https://jp1.api.riotgames.com',
+  'euw1': 'https://euw1.api.riotgames.com',
+  'eun1': 'https://eun1.api.riotgames.com',
+  'tr1': 'https://tr1.api.riotgames.com',
+  'ru': 'https://ru.api.riotgames.com',
+  'oc1': 'https://oc1.api.riotgames.com'
+};
+
 // Map regions to continental routing
 const REGION_TO_CONTINENTAL = {
-  'na1': 'americas',
+  'na1': 'americas', 
   'br1': 'americas', 
-  'la1': 'americas',
+  'la1': 'americas', 
   'la2': 'americas',
-  'kr': 'asia',
+  'kr': 'asia', 
   'jp1': 'asia',
-  'euw1': 'europe',
-  'eun1': 'europe',
-  'tr1': 'europe',
+  'euw1': 'europe', 
+  'eun1': 'europe', 
+  'tr1': 'europe', 
   'ru': 'europe',
   'oc1': 'sea'
 };
@@ -48,20 +41,39 @@ const REGION_TO_CONTINENTAL = {
 export class RiotApiService {
   
   /**
-   * Make authenticated request to Riot API
+   * Parse Riot ID (e.g., "2SikNinja#Sik" -> {gameName: "2SikNinja", tagLine: "Sik"})
+   */
+  static parseRiotId(riotId) {
+    const parts = riotId.trim().split('#');
+    if (parts.length !== 2) {
+      throw new Error('Invalid Riot ID format. Please use format: GameName#TAG');
+    }
+    
+    const [gameName, tagLine] = parts;
+    if (!gameName || !tagLine) {
+      throw new Error('Invalid Riot ID format. Both game name and tag are required.');
+    }
+    
+    return {
+      gameName: gameName.trim(),
+      tagLine: tagLine.trim()
+    };
+  }
+
+  /**
+   * Make authenticated request to Riot API using query parameter method
    */
   static async makeRequest(url, retries = 3) {
     if (!RIOT_API_KEY || RIOT_API_KEY === 'your_riot_api_key') {
-      throw new Error('Riot API key not configured. Please add your API key to the .env file.');
+      throw new Error('API key not configured. Please add your Riot API key to the .env file.');
     }
 
-    const headers = {
-      'X-Riot-Token': RIOT_API_KEY,
-      'Content-Type': 'application/json'
-    };
+    // Add API key as query parameter
+    const separator = url.includes('?') ? '&' : '?';
+    const fullUrl = `${url}${separator}api_key=${RIOT_API_KEY}`;
 
     try {
-      const response = await fetch(url, { headers });
+      const response = await fetch(fullUrl);
       
       // Handle rate limiting
       if (response.status === 429) {
@@ -96,30 +108,55 @@ export class RiotApiService {
   }
 
   /**
-   * Get summoner by name and region
+   * Get continental endpoint based on region
    */
-  static async getSummonerByName(summonerName, region = 'na1') {
+  static getContinentalEndpoint(region) {
+    const continental = REGION_TO_CONTINENTAL[region];
+    if (!continental) {
+      throw new Error(`Invalid region: ${region}`);
+    }
+    return CONTINENTAL_ENDPOINTS[continental];
+  }
+
+  /**
+   * Get account by Riot ID using the working Account-V1 API endpoint
+   */
+  static async getAccountByRiotId(riotId, region = 'na1') {
+    const { gameName, tagLine } = this.parseRiotId(riotId);
+    
+    // Get the correct continental endpoint for this region
+    const continentalEndpoint = this.getContinentalEndpoint(region);
+    
+    // Build the URL using the working format from your example
+    const url = `${continentalEndpoint}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    
+    try {
+      const account = await this.makeRequest(url);
+      console.log('Account data retrieved:', account);
+      return account;
+    } catch (error) {
+      console.error('Error fetching account by Riot ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get summoner by PUUID using Summoner-V4 API
+   */
+  static async getSummonerByPuuid(puuid, region = 'na1') {
     const endpoint = REGIONAL_ENDPOINTS[region];
     if (!endpoint) {
       throw new Error(`Invalid region: ${region}`);
     }
 
-    const encodedName = encodeURIComponent(summonerName);
-    const url = `${endpoint}/lol/summoner/v4/summoners/by-name/${encodedName}`;
+    const url = `${endpoint}/lol/summoner/v4/summoners/by-puuid/${puuid}`;
     
     try {
       const summoner = await this.makeRequest(url);
-      
-      // Get rank information
-      const rankData = await this.getSummonerRank(summoner.id, region);
-      
-      return {
-        ...summoner,
-        region,
-        rankData
-      };
+      console.log('Summoner data retrieved:', summoner);
+      return summoner;
     } catch (error) {
-      console.error('Error fetching summoner:', error);
+      console.error('Error fetching summoner by PUUID:', error);
       throw error;
     }
   }
@@ -150,16 +187,70 @@ export class RiotApiService {
   }
 
   /**
-   * Get match history by PUUID
+   * Complete flow: Get summoner by Riot ID
+   * This is the main method you'll use for searching
+   */
+  static async getSummonerByRiotId(riotId, region = 'na1') {
+    try {
+      console.log(`🔍 Searching for: ${riotId} in region: ${region}`);
+      
+      // Step 1: Get account info using Riot ID (Account-V1 API)
+      console.log('Step 1: Getting account data...');
+      const account = await this.getAccountByRiotId(riotId, region);
+      
+      if (!account.puuid) {
+        throw new Error('No PUUID found in account response');
+      }
+      
+      // Step 2: Get summoner info using PUUID (Summoner-V4 API)
+      console.log('Step 2: Getting summoner data using PUUID:', account.puuid);
+      const summoner = await this.getSummonerByPuuid(account.puuid, region);
+      
+      // Step 3: Get rank information
+      console.log('Step 3: Getting rank data...');
+      const rankData = await this.getSummonerRank(summoner.id, region);
+      
+      // Combine all data into a unified response
+      const combinedData = {
+        // Account data (from Account-V1)
+        puuid: account.puuid,
+        gameName: account.gameName,
+        tagLine: account.tagLine,
+        
+        // Summoner data (from Summoner-V4)
+        id: summoner.id,
+        accountId: summoner.accountId,
+        name: summoner.name,
+        summonerLevel: summoner.summonerLevel,
+        profileIconId: summoner.profileIconId,
+        revisionDate: summoner.revisionDate,
+        
+        // Additional data
+        region,
+        rankData,
+        
+        // For backwards compatibility with your existing components
+        summoner_name: `${account.gameName}#${account.tagLine}`,
+        
+        // Full Riot ID format
+        riotId: `${account.gameName}#${account.tagLine}`
+      };
+      
+      console.log('✅ Successfully retrieved summoner data:', combinedData);
+      return combinedData;
+      
+    } catch (error) {
+      console.error('❌ Error in getSummonerByRiotId:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get match history by PUUID using Match-V5 API
    */
   static async getMatchHistory(puuid, region = 'na1', count = 20, startTime = null, endTime = null, queue = null) {
-    const continentalRegion = REGION_TO_CONTINENTAL[region];
-    const endpoint = CONTINENTAL_ENDPOINTS[continentalRegion];
+    const continentalEndpoint = this.getContinentalEndpoint(region);
     
-    if (!endpoint) {
-      throw new Error(`Invalid region for match data: ${region}`);
-    }
-
     // Build query parameters
     const params = new URLSearchParams({
       start: '0',
@@ -170,10 +261,13 @@ export class RiotApiService {
     if (endTime) params.append('endTime', endTime.toString());
     if (queue) params.append('queue', queue.toString());
 
-    const url = `${endpoint}/lol/match/v5/matches/by-puuid/${puuid}/ids?${params}`;
+    const url = `${continentalEndpoint}/lol/match/v5/matches/by-puuid/${puuid}/ids?${params}`;
     
     try {
-      return await this.makeRequest(url);
+      console.log(`🔍 Fetching match IDs: ${url}`);
+      const matchIds = await this.makeRequest(url);
+      console.log(`✅ Retrieved ${matchIds.length} match IDs`);
+      return matchIds;
     } catch (error) {
       console.error('Error fetching match history:', error);
       throw error;
@@ -181,106 +275,37 @@ export class RiotApiService {
   }
 
   /**
-   * Get detailed match information
+   * Get detailed match information using Match-V5 API
    */
   static async getMatchDetails(matchId, region = 'na1') {
-    const continentalRegion = REGION_TO_CONTINENTAL[region];
-    const endpoint = CONTINENTAL_ENDPOINTS[continentalRegion];
-    
-    const url = `${endpoint}/lol/match/v5/matches/${matchId}`;
+    const continentalEndpoint = this.getContinentalEndpoint(region);
+    const url = `${continentalEndpoint}/lol/match/v5/matches/${matchId}`;
     
     try {
-      return await this.makeRequest(url);
+      console.log(`🔍 Fetching match details: ${matchId}`);
+      const matchData = await this.makeRequest(url);
+      console.log(`✅ Retrieved match details for: ${matchId}`);
+      return matchData;
     } catch (error) {
-      console.error('Error fetching match details:', error);
+      console.error(`Error fetching match details for ${matchId}:`, error);
       throw error;
     }
   }
 
   /**
-   * Get match timeline
+   * Search and cache summoner data using Riot ID
    */
-  static async getMatchTimeline(matchId, region = 'na1') {
-    const continentalRegion = REGION_TO_CONTINENTAL[region];
-    const endpoint = CONTINENTAL_ENDPOINTS[continentalRegion];
-    
-    const url = `${endpoint}/lol/match/v5/matches/${matchId}/timeline`;
-    
+  static async searchAndCacheSummoner(riotId, region = 'na1') {
     try {
-      return await this.makeRequest(url);
-    } catch (error) {
-      console.error('Error fetching match timeline:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get current game information
-   */
-  static async getCurrentGame(summonerId, region = 'na1') {
-    const endpoint = REGIONAL_ENDPOINTS[region];
-    const url = `${endpoint}/lol/spectator/v4/active-games/by-summoner/${summonerId}`;
-    
-    try {
-      return await this.makeRequest(url);
-    } catch (error) {
-      if (error.message.includes('404')) {
-        return null; // Not currently in game
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get champion mastery for summoner
-   */
-  static async getChampionMastery(summonerId, region = 'na1', championId = null) {
-    const endpoint = REGIONAL_ENDPOINTS[region];
-    
-    let url;
-    if (championId) {
-      url = `${endpoint}/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}/by-champion/${championId}`;
-    } else {
-      url = `${endpoint}/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}`;
-    }
-    
-    try {
-      return await this.makeRequest(url);
-    } catch (error) {
-      console.error('Error fetching champion mastery:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get top champion masteries for summoner
-   */
-  static async getTopChampionMasteries(summonerId, region = 'na1', count = 3) {
-    const endpoint = REGIONAL_ENDPOINTS[region];
-    const url = `${endpoint}/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}/top?count=${count}`;
-    
-    try {
-      return await this.makeRequest(url);
-    } catch (error) {
-      console.error('Error fetching top champion masteries:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Search and cache summoner data
-   */
-  static async searchAndCacheSummoner(summonerName, region = 'na1') {
-    try {
-      // Get summoner data from Riot API
-      const summonerData = await this.getSummonerByName(summonerName, region);
+      // Get summoner data from Riot API using new Riot ID system
+      const summonerData = await this.getSummonerByRiotId(riotId, region);
       
-      // Format data for database
+      // Format data for database storage
       const dbSummoner = {
         puuid: summonerData.puuid,
         summoner_id: summonerData.id,
         account_id: summonerData.accountId,
-        summoner_name: summonerData.name,
+        summoner_name: `${summonerData.gameName}#${summonerData.tagLine}`,
         summoner_level: summonerData.summonerLevel,
         profile_icon_id: summonerData.profileIconId,
         region: region,
@@ -300,75 +325,14 @@ export class RiotApiService {
   }
 
   /**
-   * Get and format match data for database storage
+   * Helper function to validate Riot ID format
    */
-  static async getAndFormatMatch(matchId, region = 'na1') {
+  static isValidRiotId(riotId) {
     try {
-      const matchData = await this.getMatchDetails(matchId, region);
-      
-      // Format match data for database
-      const dbMatch = {
-        match_id: matchData.metadata.matchId,
-        game_creation: matchData.info.gameCreation,
-        game_duration: matchData.info.gameDuration,
-        game_end_timestamp: matchData.info.gameEndTimestamp,
-        game_mode: matchData.info.gameMode,
-        game_type: matchData.info.gameType,
-        game_version: matchData.info.gameVersion,
-        map_id: matchData.info.mapId,
-        platform_id: matchData.info.platformId,
-        queue_id: matchData.info.queueId,
-        tournament_code: matchData.info.tournamentCode || null
-      };
-
-      // Format participants data
-      const dbParticipants = matchData.info.participants.map(participant => ({
-        puuid: participant.puuid,
-        participant_id: participant.participantId,
-        team_id: participant.teamId,
-        champion_id: participant.championId,
-        champion_name: participant.championName,
-        champion_level: participant.champLevel,
-        kills: participant.kills,
-        deaths: participant.deaths,
-        assists: participant.assists,
-        gold_earned: participant.goldEarned,
-        total_damage_dealt: participant.totalDamageDealt,
-        total_damage_dealt_to_champions: participant.totalDamageDealtToChampions,
-        total_damage_taken: participant.totalDamageTaken,
-        total_heal: participant.totalHeal,
-        total_minions_killed: participant.totalMinionsKilled,
-        neutral_minions_killed: participant.neutralMinionsKilled,
-        vision_score: participant.visionScore,
-        wards_placed: participant.wardsPlaced,
-        wards_killed: participant.wardsKilled,
-        item0: participant.item0,
-        item1: participant.item1,
-        item2: participant.item2,
-        item3: participant.item3,
-        item4: participant.item4,
-        item5: participant.item5,
-        item6: participant.item6,
-        summoner1_id: participant.summoner1Id,
-        summoner2_id: participant.summoner2Id,
-        primary_rune_tree: participant.perks?.styles?.[0]?.style || 0,
-        secondary_rune_tree: participant.perks?.styles?.[1]?.style || 0,
-        win: participant.win,
-        team_position: participant.teamPosition,
-        lane: participant.lane,
-        role: participant.role,
-        first_blood_kill: participant.firstBloodKill,
-        first_tower_kill: participant.firstTowerKill,
-        double_kills: participant.doubleKills,
-        triple_kills: participant.tripleKills,
-        quadra_kills: participant.quadraKills,
-        penta_kills: participant.pentaKills
-      }));
-
-      return { match: dbMatch, participants: dbParticipants };
-    } catch (error) {
-      console.error('Error getting and formatting match:', error);
-      throw error;
+      this.parseRiotId(riotId);
+      return true;
+    } catch {
+      return false;
     }
   }
 

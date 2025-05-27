@@ -493,3 +493,75 @@
 		height: 16px;
 	}
 }
+
+/* Error and Success Messages */
+.error-message {
+	background: rgba(255, 71, 87, 0.1);
+	color: #ff4757;
+	padding: 1rem 1.5rem;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 71, 87, 0.3);
+	font-size: 1rem;
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.success-message {
+	background: rgba(46, 213, 115, 0.1) !important;
+	color: #2ed573 !important;
+	border: 1px solid rgba(46, 213, 115, 0.3) !important;
+}
+
+.puuid-info {
+	color: #a09b8c;
+	font-size: 0.9rem;
+	font-family: 'Courier New', monospace;
+}
+
+/* Load More Section */
+.load-more-section {
+	display: flex;
+	justify-content: center;
+	margin: 2rem 0;
+	padding: 2rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.load-more-btn {
+	background: rgba(200, 155, 60, 0.1);
+	color: #c89b3c;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+	padding: 1rem 2rem;
+	border-radius: 8px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	min-width: 250px;
+	justify-content: center;
+}
+
+.load-more-btn:hover:not(:disabled) {
+	background: rgba(200, 155, 60, 0.2);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(200, 155, 60, 0.3);
+}
+
+.load-more-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.loading-spinner.small {
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+	border-top: 2px solid #c89b3c;
+}

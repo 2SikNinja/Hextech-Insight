@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { DatabaseService } from '../database/database-service.js'
+import { RiotApiService } from '../database/riot-api-service.js'
 import '../styles/summonerSearch.css'
 
 function SummonerSearch({ onNavigate, user }) {
@@ -43,9 +44,43 @@ function SummonerSearch({ onNavigate, user }) {
     checkFavoriteStatus()
   }, [user, summoner])
 
+  const validateRiotId = (riotId) => {
+    const trimmed = riotId.trim()
+    if (!trimmed.includes('#')) {
+      return 'Please use the format: GameName#TAG (e.g., 2SikNinja#2Sik)'
+    }
+    
+    const parts = trimmed.split('#')
+    if (parts.length !== 2) {
+      return 'Invalid format. Please use: GameName#TAG'
+    }
+    
+    const [gameName, tagLine] = parts
+    if (!gameName || !tagLine) {
+      return 'Both game name and tag are required'
+    }
+    
+    if (gameName.length < 3 || gameName.length > 16) {
+      return 'Game name must be 3-16 characters long'
+    }
+    
+    if (tagLine.length < 3 || tagLine.length > 5) {
+      return 'Tag must be 3-5 characters long'
+    }
+    
+    return null
+  }
+
   const handleSearch = async (e) => {
     e.preventDefault()
     if (!searchTerm.trim()) return
+
+    // Validate Riot ID format
+    const validationError = validateRiotId(searchTerm)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -53,41 +88,109 @@ function SummonerSearch({ onNavigate, user }) {
     setIsFavorited(false)
 
     try {
-      // First, try to find in our database
+      console.log(`🔍 Starting search for: ${searchTerm} in region: ${region}`)
+      
+      // First, try to find in our database using the full Riot ID
       const { data: existingSummoner, error: dbError } = await DatabaseService.searchSummoner(
         searchTerm.trim(),
         region
       )
 
       if (existingSummoner) {
+        console.log('✅ Found existing summoner in database:', existingSummoner)
         setSummoner(existingSummoner)
+        setError('Found cached data! Searching for fresh data...')
+        
+        // Still try to get fresh data in the background
+        setTimeout(() => setError(null), 2000)
       } else {
-        // For now, create a mock summoner for demonstration
-        // In a real app, this would fetch from Riot API
-        const mockSummoner = {
-          id: Date.now(), // Mock ID
-          summoner_name: searchTerm.trim(),
-          summoner_level: Math.floor(Math.random() * 500) + 1,
+        console.log('❌ Summoner not found in database, fetching from Riot API...')
+      }
+
+      // Try to get fresh data from Riot API
+      try {
+        console.log('🌐 Calling Riot API...')
+        const riotSummonerData = await RiotApiService.getSummonerByRiotId(searchTerm.trim(), region)
+        
+        console.log('✅ Riot API Success! Data received:', riotSummonerData)
+        
+        // Format for our app
+        const formattedSummoner = {
+          id: Date.now(), // Temporary ID for display, will be replaced when saved to DB
+          puuid: riotSummonerData.puuid,
+          summoner_id: riotSummonerData.id,
+          account_id: riotSummonerData.accountId,
+          summoner_name: `${riotSummonerData.gameName}#${riotSummonerData.tagLine}`,
+          summoner_level: riotSummonerData.summonerLevel,
+          profile_icon_id: riotSummonerData.profileIconId,
           region: region,
-          last_updated: new Date().toISOString(),
-          puuid: `mock_puuid_${Date.now()}`,
-          profile_icon_id: Math.floor(Math.random() * 28) + 1,
-          // Add some mock rank data
-          rank_tier: ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'][Math.floor(Math.random() * 9)],
-          rank_division: ['IV', 'III', 'II', 'I'][Math.floor(Math.random() * 4)],
-          league_points: Math.floor(Math.random() * 100),
-          wins: Math.floor(Math.random() * 100) + 10,
-          losses: Math.floor(Math.random() * 80) + 5
+          rank_tier: riotSummonerData.rankData?.soloQueue?.tier || null,
+          rank_division: riotSummonerData.rankData?.soloQueue?.rank || null,
+          league_points: riotSummonerData.rankData?.soloQueue?.leaguePoints || 0,
+          wins: riotSummonerData.rankData?.soloQueue?.wins || 0,
+          losses: riotSummonerData.rankData?.soloQueue?.losses || 0,
+          last_updated: new Date().toISOString()
+        }
+
+        setSummoner(formattedSummoner)
+        setError('✅ Fresh data loaded from Riot API!')
+        setTimeout(() => setError(null), 3000)
+
+        // Try to save to database for future searches
+        try {
+          const savedSummoner = await DatabaseService.createOrUpdateSummoner(formattedSummoner)
+          console.log('✅ Saved to database:', savedSummoner)
+        } catch (saveError) {
+          console.log('⚠️ Could not save to database:', saveError)
+          // Continue anyway since we have the data
+        }
+
+      } catch (apiError) {
+        console.error('❌ Riot API error:', apiError)
+        
+        // If we have cached data, use it
+        if (existingSummoner) {
+          console.log('📦 Using cached data due to API error')
+          setError('⚠️ Using cached data (API temporarily unavailable)')
+          setTimeout(() => setError(null), 4000)
+          return
         }
         
-        setSummoner(mockSummoner)
+        // Handle specific API errors
+        if (apiError.message.includes('not found')) {
+          setError('❌ Summoner not found. Please check the Riot ID and region.')
+        } else if (apiError.message.includes('API key')) {
+          setError('⚠️ API key issue. Please check your configuration.')
+        } else if (apiError.message.includes('Rate limit')) {
+          setError('⏱️ Rate limited. Please wait a moment and try again.')
+        } else {
+          setError('⚠️ API temporarily unavailable. Please try again later.')
+          
+          // Create mock summoner for demonstration if no cached data
+          const { gameName, tagLine } = RiotApiService.parseRiotId(searchTerm.trim())
+          const mockSummoner = {
+            id: Date.now(),
+            summoner_name: `${gameName}#${tagLine}`,
+            summoner_level: Math.floor(Math.random() * 500) + 1,
+            region: region,
+            last_updated: new Date().toISOString(),
+            puuid: `mock_puuid_${Date.now()}`,
+            profile_icon_id: Math.floor(Math.random() * 28) + 1,
+            rank_tier: ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'][Math.floor(Math.random() * 9)],
+            rank_division: ['IV', 'III', 'II', 'I'][Math.floor(Math.random() * 4)],
+            league_points: Math.floor(Math.random() * 100),
+            wins: Math.floor(Math.random() * 100) + 10,
+            losses: Math.floor(Math.random() * 80) + 5
+          }
+          
+          setSummoner(mockSummoner)
+          setError('🧪 Demo Mode: Showing mock data due to API error.')
+        }
         
-        // Show a message that this is demo data
-        setError('Demo Mode: Showing mock data. Real Riot API integration coming soon!')
-        setTimeout(() => setError(null), 3000)
+        setTimeout(() => setError(null), 5000)
       }
     } catch (err) {
-      setError('Failed to search for summoner. Please try again.')
+      setError('❌ Failed to search for summoner. Please try again.')
       console.error('Search error:', err)
     } finally {
       setLoading(false)
@@ -183,7 +286,7 @@ function SummonerSearch({ onNavigate, user }) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Enter summoner name..."
+            placeholder="Enter Riot ID (e.g., 2SikNinja#2Sik)..."
             className="summoner-input"
             disabled={loading}
           />
@@ -210,12 +313,12 @@ function SummonerSearch({ onNavigate, user }) {
       {loading && (
         <div className="search-loading">
           <div className="loading-spinner"></div>
-          <p>Searching for summoner...</p>
+          <p>Searching Riot API...</p>
         </div>
       )}
 
       {error && (
-        <div className="error-message">
+        <div className={`error-message ${error.includes('✅') || error.includes('📦') ? 'success-message' : ''}`}>
           {error}
         </div>
       )}
@@ -239,6 +342,9 @@ function SummonerSearch({ onNavigate, user }) {
                 <div className="summoner-meta">
                   <span className="region-badge">{summoner.region.toUpperCase()}</span>
                   <span className="last-updated">Updated {formatLastUpdated(summoner.last_updated)}</span>
+                  {summoner.puuid && (
+                    <span className="puuid-indicator">✅ PUUID: {summoner.puuid.substring(0, 8)}...</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -280,14 +386,31 @@ function SummonerSearch({ onNavigate, user }) {
 
       {!summoner && !loading && !error && (
         <div className="search-tips">
-          <h4>Search Tips</h4>
+          <h4>🆕 New Riot ID Format</h4>
           <ul>
-            <li>Enter the exact summoner name (case sensitive)</li>
-            <li>Select the correct region where the account is located</li>
-            <li>Make sure the summoner name is spelled correctly</li>
-            <li>Try searching without special characters if you encounter issues</li>
+            <li><strong>Use the new format:</strong> GameName#TAG (e.g., 2SikNinja#2Sik)</li>
+            <li><strong>Find your Riot ID:</strong> Check in-game or on your Riot account</li>
+            <li>Game name: 3-16 characters, Tag: 3-5 characters</li>
+            <li>Select the correct region where your account is located</li>
+            <li>Make sure both the game name and tag are spelled correctly</li>
             <li>Create an account to save your favorite players</li>
           </ul>
+          
+          <div className="format-examples">
+            <h5>✅ Correct Format Examples:</h5>
+            <ul>
+              <li>2SikNinja#2Sik</li>
+              <li>PlayerName#123</li>
+              <li>GamerTag#ABCD</li>
+            </ul>
+            
+            <h5>❌ Incorrect Formats:</h5>
+            <ul>
+              <li>2SikNinja (missing tag)</li>
+              <li>#2Sik (missing game name)</li>
+              <li>Player#Name#123 (multiple #)</li>
+            </ul>
+          </div>
         </div>
       )}
 

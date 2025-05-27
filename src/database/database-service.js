@@ -34,11 +34,12 @@ export class DatabaseService {
   }
 
   // Summoner methods
-  static async searchSummoner(summonerName, region = 'na1') {
+  static async searchSummoner(riotId, region = 'na1') {
+    // Search by the full Riot ID (GameName#TAG format)
     const { data, error } = await supabase
       .from('summoners')
       .select('*')
-      .eq('summoner_name', summonerName)
+      .eq('summoner_name', riotId)
       .eq('region', region)
       .single()
     
