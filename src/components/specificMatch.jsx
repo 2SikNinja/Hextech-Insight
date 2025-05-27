@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DatabaseService } from '../database/database-service.js'
+import { RiotApiService } from '../database/riot-api-service.js'
 import '../styles/specificMatch.css'
 
 function SpecificMatch({ match, onNavigate }) {
@@ -8,6 +8,7 @@ function SpecificMatch({ match, onNavigate }) {
   const [error, setError] = useState(null)
   const [selectedTeam, setSelectedTeam] = useState('all') // 'all', 'blue', 'red'
   const [selectedTab, setSelectedTab] = useState('overview') // 'overview', 'builds', 'timeline'
+  const [currentSummonerPuuid, setCurrentSummonerPuuid] = useState(null)
 
   useEffect(() => {
     if (match) {
@@ -17,8 +18,7 @@ function SpecificMatch({ match, onNavigate }) {
 
   const loadMatchDetails = async () => {
     if (!match?.matches?.match_id) {
-      // If we don't have a full match ID, create mock detailed data
-      setMatchDetails(generateDetailedMatchData(match))
+      setError('No match ID provided')
       setLoading(false)
       return
     }
@@ -27,35 +27,127 @@ function SpecificMatch({ match, onNavigate }) {
     setError(null)
 
     try {
-      const { data, error: dbError } = await DatabaseService.getSpecificMatch(match.matches.match_id)
+      console.log(`🔍 Loading detailed match data for: ${match.matches.match_id}`)
       
-      if (data) {
-        setMatchDetails(data)
+      // Get the region from the match data, fallback to 'na1'
+      const region = match.region || 'na1'
+      
+      // Fetch full match details using the Match-V5 API
+      const fullMatchData = await RiotApiService.getMatchDetails(match.matches.match_id, region)
+      
+      console.log('✅ Full match data retrieved:', fullMatchData)
+      
+      // Process and format the match data
+      const processedMatchData = processMatchData(fullMatchData, match)
+      setMatchDetails(processedMatchData)
+      
+      setError('✅ Match details loaded from Riot API!')
+      setTimeout(() => setError(null), 3000)
+
+    } catch (err) {
+      console.error('❌ Error loading match details:', err)
+      
+      if (err.message.includes('not found')) {
+        setError('❌ Match not found or no longer available')
+      } else if (err.message.includes('Rate limit')) {
+        setError('⏱️ Rate limited. Please wait a moment and try again.')
       } else {
-        // Fallback to mock data if not found in database
+        setError('⚠️ Failed to load match details. Showing demo data...')
+        
+        // Fallback to mock data
         setMatchDetails(generateDetailedMatchData(match))
       }
-    } catch (err) {
-      console.error('Error loading match details:', err)
-      setError('Failed to load match details')
-      // Still show mock data on error
-      setMatchDetails(generateDetailedMatchData(match))
     } finally {
       setLoading(false)
     }
   }
 
+  const processMatchData = (apiMatchData, originalMatch) => {
+    // Store the current summoner's PUUID for highlighting
+    const currentPlayerParticipant = apiMatchData.info.participants.find(p => 
+      p.championName === originalMatch.champion_name && 
+      p.kills === originalMatch.kills &&
+      p.deaths === originalMatch.deaths &&
+      p.assists === originalMatch.assists
+    )
+    
+    if (currentPlayerParticipant) {
+      setCurrentSummonerPuuid(currentPlayerParticipant.puuid)
+    }
+
+    // Process all participants
+    const participants = apiMatchData.info.participants.map((participant, index) => ({
+      id: index + 1,
+      participant_id: participant.participantId,
+      team_id: participant.teamId,
+      champion_id: participant.championId,
+      champion_name: participant.championName,
+      champion_level: participant.champLevel,
+      kills: participant.kills,
+      deaths: participant.deaths,
+      assists: participant.assists,
+      gold_earned: participant.goldEarned,
+      total_damage_dealt_to_champions: participant.totalDamageDealtToChampions,
+      total_damage_taken: participant.totalDamageTaken,
+      total_minions_killed: participant.totalMinionsKilled,
+      neutral_minions_killed: participant.neutralMinionsKilled,
+      vision_score: participant.visionScore,
+      wards_placed: participant.wardsPlaced,
+      wards_killed: participant.wardsKilled,
+      item0: participant.item0,
+      item1: participant.item1,
+      item2: participant.item2,
+      item3: participant.item3,
+      item4: participant.item4,
+      item5: participant.item5,
+      item6: participant.item6,
+      summoner1_id: participant.summoner1Id,
+      summoner2_id: participant.summoner2Id,
+      win: participant.win,
+      team_position: participant.teamPosition,
+      lane: participant.lane,
+      double_kills: participant.doubleKills,
+      triple_kills: participant.tripleKills,
+      quadra_kills: participant.quadraKills,
+      penta_kills: participant.pentaKills,
+      puuid: participant.puuid,
+      riotIdGameName: participant.riotIdGameName,
+      riotIdTagline: participant.riotIdTagline,
+      isCurrentPlayer: participant.puuid === currentPlayerParticipant?.puuid,
+      // Create summoner info for display
+      summoners: {
+        summoner_name: participant.riotIdGameName && participant.riotIdTagline 
+          ? `${participant.riotIdGameName}#${participant.riotIdTagline}`
+          : `Player ${index + 1}`,
+        summoner_level: participant.champLevel
+      }
+    }))
+
+    return {
+      id: apiMatchData.metadata.matchId,
+      match_id: apiMatchData.metadata.matchId,
+      game_creation: apiMatchData.info.gameCreation,
+      game_duration: apiMatchData.info.gameDuration,
+      game_mode: apiMatchData.info.gameMode,
+      game_type: apiMatchData.info.gameType,
+      queue_id: apiMatchData.info.queueId,
+      map_id: apiMatchData.info.mapId,
+      platform_id: apiMatchData.info.platformId,
+      game_version: apiMatchData.info.gameVersion,
+      match_participants: participants,
+      // Additional match info
+      teams: apiMatchData.info.teams
+    }
+  }
+
   const generateDetailedMatchData = (matchData) => {
     const champions = [
-      'Aatrox', 'Ahri', 'Akali', 'Alistar', 'Amumu', 'Anivia', 'Annie', 'Ashe',
+      'Aatrox', 'Ahri', 'Akali', 'Alistar', 'Ammu', 'Anivia', 'Annie', 'Ashe',
       'Azir', 'Bard', 'Blitzcrank', 'Brand', 'Braum', 'Caitlyn', 'Camille', 
       'Cassiopeia', 'Darius', 'Diana', 'Draven', 'Ekko', 'Elise', 'Ezreal',
       'Fiora', 'Fizz', 'Garen', 'Graves', 'Irelia', 'Janna', 'Jarvan IV',
       'Jax', 'Jinx', 'Karma', 'Katarina', 'Kayle', 'Leblanc', 'Lee Sin',
-      'Leona', 'Lux', 'Malphite', 'Morgana', 'Nasus', 'Orianna', 'Riven',
-      'Ryze', 'Shaco', 'Shen', 'Sivir', 'Sona', 'Thresh', 'Tristana',
-      'Twisted Fate', 'Twitch', 'Vayne', 'Veigar', 'Vi', 'Viktor', 'Vladimir',
-      'Warwick', 'Xin Zhao', 'Yasuo', 'Yorick', 'Zed', 'Ziggs', 'Zyra'
+      'Leona', 'Lux', 'Malphite', 'Morgana', 'Nasus', 'Orianna', 'Riven'
     ]
 
     const positions = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']
@@ -70,7 +162,7 @@ function SpecificMatch({ match, onNavigate }) {
       const kills = Math.floor(Math.random() * 15)
       const deaths = Math.floor(Math.random() * 10)
       const assists = Math.floor(Math.random() * 20)
-      const isCurrentPlayer = i === 0 // First player is the searched player
+      const isCurrentPlayer = champion === matchData?.champion_name
       
       return {
         id: i + 1,
@@ -96,7 +188,7 @@ function SpecificMatch({ match, onNavigate }) {
         item3: Math.floor(Math.random() * 100) + 1000,
         item4: Math.floor(Math.random() * 100) + 2000,
         item5: Math.floor(Math.random() * 100) + 3000,
-        item6: Math.floor(Math.random() * 10) + 2000, // Trinket
+        item6: Math.floor(Math.random() * 10) + 2000,
         summoner1_id: Math.floor(Math.random() * 14) + 1,
         summoner2_id: Math.floor(Math.random() * 14) + 1,
         win: isBlueTeam ? (matchData?.win ?? Math.random() > 0.5) : !(matchData?.win ?? Math.random() > 0.5),
@@ -108,7 +200,7 @@ function SpecificMatch({ match, onNavigate }) {
         penta_kills: Math.random() > 0.98 ? 1 : 0,
         isCurrentPlayer,
         summoners: {
-          summoner_name: isCurrentPlayer ? (matchData?.summoner_name || 'You') : `Player${i + 1}`,
+          summoner_name: isCurrentPlayer ? 'You' : `Player${i + 1}`,
           summoner_level: Math.floor(Math.random() * 200) + 30
         }
       }
@@ -195,7 +287,7 @@ function SpecificMatch({ match, onNavigate }) {
       <div className="specific-match">
         <div className="loading-state">
           <div className="loading-spinner"></div>
-          <p>Loading match details...</p>
+          <p>Loading match details from Riot API...</p>
         </div>
       </div>
     )
@@ -232,6 +324,8 @@ function SpecificMatch({ match, onNavigate }) {
             <span>{new Date(matchDetails.game_creation).toLocaleDateString()}</span>
             <span>•</span>
             <span>Match ID: {matchDetails.match_id}</span>
+            <span>•</span>
+            <span>Patch: {matchDetails.game_version || 'Unknown'}</span>
           </div>
         </div>
         <button 
@@ -241,6 +335,13 @@ function SpecificMatch({ match, onNavigate }) {
           ← Back to History
         </button>
       </div>
+
+      {/* Success Message */}
+      {error && (
+        <div className={`error-message ${error.includes('✅') ? 'success-message' : ''}`}>
+          {error}
+        </div>
+      )}
 
       {/* Match Result */}
       <div className="match-result-banner">
