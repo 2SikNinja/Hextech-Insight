@@ -1,4 +1,4 @@
-import './styles/riotNotice.css'
+import '../styles/riotNotice.css'
 
 function RiotNotice() {
   return (
