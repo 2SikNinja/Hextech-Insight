@@ -1,0 +1,208 @@
+.riot-notice {
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: 2rem;
+	background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+	min-height: 100vh;
+	color: #e0e0e0;
+}
+
+.notice-container {
+	background: rgba(255, 255, 255, 0.05);
+	backdrop-filter: blur(10px);
+	border-radius: 16px;
+	padding: 3rem;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.riot-notice h1 {
+	text-align: center;
+	color: #c89b3c;
+	font-size: 2.5rem;
+	margin-bottom: 2rem;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+	border-bottom: 2px solid #c89b3c;
+	padding-bottom: 1rem;
+}
+
+.riot-notice h2 {
+	color: #f0e6d2;
+	font-size: 1.5rem;
+	margin: 2rem 0 1rem 0;
+	padding-left: 0.5rem;
+	border-left: 4px solid #c89b3c;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.riot-notice h3 {
+	color: #cdbe91;
+	font-size: 1.2rem;
+	margin: 1.5rem 0 0.8rem 0;
+	font-weight: 600;
+}
+
+.riot-notice section {
+	margin-bottom: 2.5rem;
+	padding: 1.5rem;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 12px;
+	border: 1px solid rgba(200, 155, 60, 0.2);
+}
+
+.disclaimer-text {
+	font-size: 1.1rem;
+	line-height: 1.6;
+	padding: 1.5rem;
+	background: rgba(200, 155, 60, 0.1);
+	border-radius: 8px;
+	border-left: 4px solid #c89b3c;
+	font-weight: 500;
+}
+
+.disclaimer-text strong {
+	color: #c89b3c;
+	font-weight: 700;
+}
+
+.riot-notice p {
+	line-height: 1.6;
+	margin-bottom: 1rem;
+	color: #d0d0d0;
+}
+
+.riot-notice ul {
+	list-style: none;
+	padding-left: 0;
+}
+
+.riot-notice li {
+	position: relative;
+	padding: 0.5rem 0 0.5rem 2rem;
+	margin-bottom: 0.5rem;
+	color: #d0d0d0;
+	line-height: 1.5;
+}
+
+.riot-notice li::before {
+	content: "▸";
+	position: absolute;
+	left: 0;
+	top: 0.5rem;
+	color: #c89b3c;
+	font-weight: bold;
+	font-size: 1.2rem;
+}
+
+.data-points {
+	background: rgba(0, 0, 0, 0.1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-top: 1rem;
+}
+
+.responsibilities {
+	background: rgba(0, 0, 0, 0.1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-top: 1rem;
+}
+
+.limitations-list {
+	background: rgba(0, 0, 0, 0.1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-top: 1rem;
+}
+
+.contact-details {
+	background: rgba(200, 155, 60, 0.1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-top: 1rem;
+	border: 1px solid rgba(200, 155, 60, 0.3);
+}
+
+.contact-details strong {
+	color: #c89b3c;
+}
+
+.last-updated {
+	font-style: italic;
+	color: #a0a0a0;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.acknowledgment {
+	margin-top: 3rem;
+	padding: 2rem;
+	background: rgba(200, 155, 60, 0.1);
+	border-radius: 12px;
+	border: 2px solid rgba(200, 155, 60, 0.3);
+	text-align: center;
+}
+
+.riot-logo-section {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.logo-disclaimer {
+	font-size: 1rem;
+	line-height: 1.6;
+	color: #f0e6d2;
+	font-weight: 500;
+	margin: 0;
+}
+
+/* Hover effects for sections */
+.riot-notice section:hover {
+	background: rgba(0, 0, 0, 0.3);
+	transform: translateY(-2px);
+	transition: all 0.3s ease;
+	box-shadow: 0 4px 16px rgba(200, 155, 60, 0.2);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+	.riot-notice {
+		padding: 1rem;
+	}
+
+	.notice-container {
+		padding: 1.5rem;
+	}
+
+	.riot-notice h1 {
+		font-size: 2rem;
+	}
+
+	.riot-notice h2 {
+		font-size: 1.3rem;
+	}
+
+	.riot-notice section {
+		padding: 1rem;
+	}
+
+	.disclaimer-text {
+		padding: 1rem;
+		font-size: 1rem;
+	}
+}
+
+@media (max-width: 480px) {
+	.riot-notice h1 {
+		font-size: 1.8rem;
+	}
+
+	.riot-notice h2 {
+		font-size: 1.2rem;
+	}
+
+	.notice-container {
+		padding: 1rem;
+	}  }
