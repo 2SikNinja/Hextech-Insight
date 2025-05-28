@@ -267,7 +267,7 @@ function SummonerSearch({ onNavigate, user }) {
     if (!summoner.rank_tier || !summoner.rank_division) {
       return 'Unranked'
     }
-    return `${summoner.rank_tier} ${summoner.rank_division} (${summoner.league_points || 0} LP)`
+    return `${summoner.rank_tier} ${summoner.rank_division}`
   }
 
   const getWinRate = (wins, losses) => {
@@ -335,12 +335,12 @@ function SummonerSearch({ onNavigate, user }) {
                     e.target.src = '/league_files/img/profileicon/1.png'
                   }}
                 />
-                <span className="level-badge">{summoner.summoner_level}</span>
               </div>
               <div className="summoner-details">
                 <h3>{summoner.summoner_name}</h3>
                 <div className="summoner-meta">
                   <span className="region-badge">{summoner.region.toUpperCase()}</span>
+                  <span className="level-display">Level {summoner.summoner_level}</span>
                   <span className="last-updated">Updated {formatLastUpdated(summoner.last_updated)}</span>
                   {summoner.puuid && (
                     <span className="puuid-indicator">✅ PUUID: {summoner.puuid.substring(0, 8)}...</span>
@@ -352,7 +352,8 @@ function SummonerSearch({ onNavigate, user }) {
             {summoner.rank_tier && (
               <div className="rank-section">
                 <div className="rank-info">
-                  <span className="rank-display">{getRankDisplay(summoner)}</span>
+                  <div className="rank-display">{getRankDisplay(summoner)}</div>
+                  <div className="lp-display">{summoner.league_points || 0} LP</div>
                   {summoner.wins && summoner.losses && (
                     <div className="winrate-display">
                       <span className="winrate">{getWinRate(summoner.wins, summoner.losses)}% Win Rate</span>

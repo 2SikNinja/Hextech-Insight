@@ -286,32 +286,65 @@ function MatchHistory({ summoner, onNavigate }) {
     return queueMap[queueId] || 'Custom Game'
   }
 
-  // Helper function to normalize champion names for image paths
+  // Helper function to normalize champion names for image paths - UPDATED TO HANDLE CAPITALIZATION
   const getChampionImageName = (championName) => {
     if (!championName) return 'default'
     
-    // Handle special cases for champion names that have different image file names
+    // Create a case-insensitive mapping for champion names
     const championNameMap = {
-      'Cho\'Gath': 'Chogath',
-      'Dr. Mundo': 'DrMundo',
-      'Jarvan IV': 'JarvanIV',
-      'Kai\'Sa': 'Kaisa',
-      'Kha\'Zix': 'Khazix',
-      'Kog\'Maw': 'KogMaw',
-      'Lee Sin': 'LeeSin',
-      'Master Yi': 'MasterYi',
-      'Miss Fortune': 'MissFortune',
-      'Nunu & Willump': 'Nunu',
-      'Rek\'Sai': 'RekSai',
-      'Renata Glasc': 'Renata',
-      'Tahm Kench': 'TahmKench',
-      'Twisted Fate': 'TwistedFate',
-      'Vel\'Koz': 'Velkoz',
-      'Wukong': 'MonkeyKing',
-      'Xin Zhao': 'XinZhao'
+      // Existing mappings
+      'cho\'gath': 'Chogath',
+      'dr. mundo': 'DrMundo', 
+      'jarvan iv': 'JarvanIV',
+      'kai\'sa': 'Kaisa',
+      'kha\'zix': 'Khazix',
+      'kog\'maw': 'KogMaw',
+      'lee sin': 'LeeSin',
+      'master yi': 'MasterYi',
+      'miss fortune': 'MissFortune',
+      'nunu & willump': 'Nunu',
+      'rek\'sai': 'RekSai',
+      'renata glasc': 'Renata',
+      'tahm kench': 'TahmKench',
+      'twisted fate': 'TwistedFate',
+      'vel\'koz': 'Velkoz',
+      'wukong': 'MonkeyKing',
+      'xin zhao': 'XinZhao',
+      
+      // Additional mappings for capitalization issues
+      'fiddlesticks': 'Fiddlesticks',
+      'leblanc': 'Leblanc',
+      'belveth': 'Belveth',
+      'chogath': 'Chogath',
+      'drmundo': 'DrMundo',
+      'jarvaniiv': 'JarvanIV',
+      'kaisa': 'Kaisa',
+      'khazix': 'Khazix',
+      'kogmaw': 'KogMaw',
+      'leesin': 'LeeSin',
+      'masteryi': 'MasterYi',
+      'missfortune': 'MissFortune',
+      'reksai': 'RekSai',
+      'tahmkench': 'TahmKench',
+      'twistedfate': 'TwistedFate',
+      'velkoz': 'Velkoz',
+      'xinzhao': 'XinZhao'
     }
 
-    return championNameMap[championName] || championName.replace(/[^a-zA-Z0-9]/g, '')
+    // First try exact match (case-insensitive)
+    const lowerChampionName = championName.toLowerCase()
+    const mappedName = championNameMap[lowerChampionName]
+    
+    if (mappedName) {
+      return mappedName
+    }
+
+    // If no mapping found, clean the name and preserve original capitalization
+    // This handles most standard champion names properly
+    const cleanedName = championName.replace(/[^a-zA-Z0-9]/g, '')
+    
+    // For names that are already in correct format, return as-is
+    return cleanedName
   }
 
   // Helper function to get summoner spell image names
