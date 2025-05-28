@@ -1,19 +1,21 @@
 .specific-match {
-	max-width: 1400px;
-	margin: 0 auto;
-	padding: 2rem;
+	width: 100vw;
+	max-width: none;
+	margin: 0;
+	padding: 2rem min(5vw, 4rem);
 	background: linear-gradient(135deg, #0a1428 0%, #1e2328 50%, #0f1419 100%);
 	min-height: 100vh;
 	color: #f0e6d2;
+	box-sizing: border-box;
 }
 
-/* Header Section */
+/* Match Header - Responsive */
 .match-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	margin-bottom: 2rem;
-	padding: 2rem;
+	padding: clamp(1.5rem, 3vw, 2.5rem);
 	background: rgba(16, 29, 40, 0.9);
 	backdrop-filter: blur(10px);
 	border-radius: 16px;
@@ -23,17 +25,18 @@
 
 .match-info h1 {
 	color: #c89b3c;
-	font-size: 2.2rem;
+	font-size: clamp(1.8rem, 4vw, 2.5rem);
 	margin-bottom: 0.5rem;
 	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .match-meta {
 	color: #cdbe91;
-	font-size: 1rem;
+	font-size: clamp(0.9rem, 2vw, 1.1rem);
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
+	flex-wrap: wrap;
 }
 
 .back-button {
@@ -216,23 +219,24 @@
 	border-color: #c89b3c;
 }
 
-/* Participants Table */
+/* Participants Table - FULL VIEWPORT WIDTH */
 .participants-table {
 	background: rgba(16, 29, 40, 0.8);
 	border-radius: 16px;
 	overflow: hidden;
 	border: 1px solid rgba(200, 155, 60, 0.2);
+	width: 100%;
 }
 
 .table-header {
 	display: grid;
-	grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 2fr;
-	gap: 1rem;
-	padding: 1rem 1.5rem;
+	grid-template-columns: minmax(250px, 2.5fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(250px, 2.5fr);
+	gap: clamp(0.5rem, 2vw, 1.5rem);
+	padding: 1rem clamp(1rem, 3vw, 2rem);
 	background: rgba(0, 0, 0, 0.4);
 	color: #c89b3c;
 	font-weight: 700;
-	font-size: 0.9rem;
+	font-size: clamp(0.8rem, 1.5vw, 0.9rem);
 	text-transform: uppercase;
 	letter-spacing: 1px;
 	border-bottom: 1px solid rgba(200, 155, 60, 0.2);
@@ -240,9 +244,9 @@
 
 .participant-row {
 	display: grid;
-	grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 2fr;
-	gap: 1rem;
-	padding: 1rem 1.5rem;
+	grid-template-columns: minmax(250px, 2.5fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(250px, 2.5fr);
+	gap: clamp(0.5rem, 2vw, 1.5rem);
+	padding: 1rem clamp(1rem, 3vw, 2rem);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 	transition: all 0.3s ease;
 	align-items: center;
@@ -422,17 +426,17 @@
 	color: #a09b8c;
 }
 
-/* Items */
+/* Items - Responsive sizing */
 .items-list {
 	display: flex;
-	gap: 3px;
+	gap: clamp(2px, 0.5vw, 4px);
 	justify-content: center;
 	flex-wrap: wrap;
 }
 
 .item-slot {
-	width: 32px;
-	height: 32px;
+	width: clamp(28px, 4vw, 36px);
+	height: clamp(28px, 4vw, 36px);
 	background: rgba(0, 0, 0, 0.4);
 	border: 1px solid rgba(200, 155, 60, 0.2);
 	border-radius: 6px;
@@ -566,21 +570,95 @@
 	border: 1px solid rgba(46, 213, 115, 0.3) !important;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
+/* Responsive Design - Multiple Monitor Sizes */
+
+/* Ultra-wide monitors (2560px+) */
+@media (min-width: 2560px) {
+	.specific-match {
+		padding: 3rem min(8vw, 6rem);
+	}
+
+	.table-header,
+	.participant-row {
+		padding: 1.5rem clamp(2rem, 4vw, 3rem);
+		gap: clamp(1rem, 3vw, 2rem);
+	}
+
+	.champion-icon {
+		width: 56px;
+		height: 56px;
+	}
+
+	.item-slot {
+		width: 36px;
+		height: 36px;
+	}
+}
+
+/* Large monitors (1920px - 2559px) */
+@media (min-width: 1920px) and (max-width: 2559px) {
+	.specific-match {
+		padding: 2.5rem min(6vw, 5rem);
+	}
+
+	.table-header,
+	.participant-row {
+		padding: 1.2rem clamp(1.5rem, 3.5vw, 2.5rem);
+	}
+
+	.champion-icon {
+		width: 52px;
+		height: 52px;
+	}
+
+	.item-slot {
+		width: 34px;
+		height: 34px;
+	}
+}
+
+/* Standard desktop (1366px - 1919px) */
+@media (min-width: 1366px) and (max-width: 1919px) {
+	.specific-match {
+		padding: 2rem min(4vw, 3rem);
+	}
+
+	.table-header,
+	.participant-row {
+		padding: 1rem clamp(1rem, 2.5vw, 2rem);
+	}
+}
+
+/* Laptop/Small desktop (1200px - 1365px) */
+@media (max-width: 1365px) {
 	.participants-table {
 		overflow-x: auto;
 	}
 
 	.table-header,
 	.participant-row {
-		min-width: 800px;
+		min-width: 1200px;
+		padding: 1rem 1.5rem;
+		gap: 1rem;
+	}
+}
+
+/* Tablets (768px - 1199px) */
+@media (max-width: 1199px) {
+	.specific-match {
+		padding: 1rem min(3vw, 2rem);
+	}
+
+	.table-header,
+	.participant-row {
+		min-width: 1000px;
 	}
 }
 
 @media (max-width: 768px) {
 	.specific-match {
-		padding: 1rem;
+		padding: 1rem 2vw;
+		width: 100vw;
 	}
 
 	.match-header {
@@ -659,6 +737,11 @@
 }
 
 @media (max-width: 480px) {
+	.specific-match {
+		padding: 1rem 1vw;
+		width: 100vw;
+	}
+
 	.match-info h1 {
 		font-size: 1.5rem;
 	}
