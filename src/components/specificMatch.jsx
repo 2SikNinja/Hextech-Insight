@@ -292,6 +292,67 @@ function SpecificMatch({ match, onNavigate }) {
     return queueMap[queueId] || 'Custom Game'
   }
 
+  // Helper function to normalize champion names for image paths - SAME AS MATCH HISTORY
+  const getChampionImageName = (championName) => {
+    if (!championName) return 'default'
+    
+    // Create a case-insensitive mapping for champion names
+    const championNameMap = {
+      // Existing mappings
+      'cho\'gath': 'Chogath',
+      'dr. mundo': 'DrMundo', 
+      'jarvan iv': 'JarvanIV',
+      'kai\'sa': 'Kaisa',
+      'kha\'zix': 'Khazix',
+      'kog\'maw': 'KogMaw',
+      'lee sin': 'LeeSin',
+      'master yi': 'MasterYi',
+      'miss fortune': 'MissFortune',
+      'nunu & willump': 'Nunu',
+      'rek\'sai': 'RekSai',
+      'renata glasc': 'Renata',
+      'tahm kench': 'TahmKench',
+      'twisted fate': 'TwistedFate',
+      'vel\'koz': 'Velkoz',
+      'wukong': 'MonkeyKing',
+      'xin zhao': 'XinZhao',
+      
+      // Additional mappings for capitalization issues
+      'fiddlesticks': 'Fiddlesticks',
+      'leblanc': 'Leblanc',
+      'belveth': 'Belveth',
+      'chogath': 'Chogath',
+      'drmundo': 'DrMundo',
+      'jarvaniiv': 'JarvanIV',
+      'kaisa': 'Kaisa',
+      'khazix': 'Khazix',
+      'kogmaw': 'KogMaw',
+      'leesin': 'LeeSin',
+      'masteryi': 'MasterYi',
+      'missfortune': 'MissFortune',
+      'reksai': 'RekSai',
+      'tahmkench': 'TahmKench',
+      'twistedfate': 'TwistedFate',
+      'velkoz': 'Velkoz',
+      'xinzhao': 'XinZhao'
+    }
+
+    // First try exact match (case-insensitive)
+    const lowerChampionName = championName.toLowerCase()
+    const mappedName = championNameMap[lowerChampionName]
+    
+    if (mappedName) {
+      return mappedName
+    }
+
+    // If no mapping found, clean the name and preserve original capitalization
+    // This handles most standard champion names properly
+    const cleanedName = championName.replace(/[^a-zA-Z0-9]/g, '')
+    
+    // For names that are already in correct format, return as-is
+    return cleanedName
+  }
+
   const filterParticipants = (participants) => {
     if (selectedTeam === 'blue') return participants.filter(p => p.team_id === 100)
     if (selectedTeam === 'red') return participants.filter(p => p.team_id === 200)
@@ -486,10 +547,15 @@ function SpecificMatch({ match, onNavigate }) {
               <div className="player-info">
                 <div className="champion-icon">
                   <img 
-                    src={`/league_files/15.8.1/img/champion/${participant.champion_name}.png`}
+                    src={`/league_files/15.8.1/img/champion/${getChampionImageName(participant.champion_name)}.png`}
                     alt={participant.champion_name}
                     onError={(e) => {
-                      e.target.src = '/league_files/img/champion/default.png'
+                      // Try fallback paths
+                      if (e.target.src.includes('15.8.1')) {
+                        e.target.src = `/league_files/img/champion/${getChampionImageName(participant.champion_name)}.png`
+                      } else {
+                        e.target.src = '/league_files/img/champion/default.png'
+                      }
                     }}
                   />
                   <span className="champion-level">{participant.champion_level}</span>

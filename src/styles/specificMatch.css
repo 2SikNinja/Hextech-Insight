@@ -242,6 +242,20 @@
 	border-bottom: 1px solid rgba(200, 155, 60, 0.2);
 }
 
+/* Center all column headers except the first one (PLAYER) */
+.table-header .player-col {
+	text-align: left;
+}
+
+.table-header .kda-col,
+.table-header .damage-col,
+.table-header .gold-col,
+.table-header .cs-col,
+.table-header .vision-col,
+.table-header .items-col {
+	text-align: center;
+}
+
 .participant-row {
 	display: grid;
 	grid-template-columns: minmax(250px, 2.5fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(250px, 2.5fr);
