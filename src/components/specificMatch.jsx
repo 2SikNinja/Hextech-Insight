@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { RiotApiService } from '../database/riot-api-service.js'
+import { ChampionService } from '../database/champion-service.js'
 import '../styles/specificMatch.css'
 
 function SpecificMatch({ match, onNavigate }) {
@@ -54,8 +55,9 @@ function SpecificMatch({ match, onNavigate }) {
       } else {
         setError('⚠️ Failed to load match details. Showing demo data...')
         
-        // Fallback to mock data
-        setMatchDetails(generateDetailedMatchData(match))
+        // Fallback to mock data with improved champion service
+        const mockMatchData = await generateDetailedMatchData(match)
+        setMatchDetails(mockMatchData)
       }
     } finally {
       setLoading(false)
@@ -140,40 +142,33 @@ function SpecificMatch({ match, onNavigate }) {
     }
   }
 
-  const generateDetailedMatchData = (matchData) => {
-    const champions = [
-      'Aatrox', 'Ahri', 'Akali', 'Alistar', 'Ammu', 'Anivia', 'Annie', 'Ashe',
-      'Azir', 'Bard', 'Blitzcrank', 'Brand', 'Braum', 'Caitlyn', 'Camille', 
-      'Cassiopeia', 'Darius', 'Diana', 'Draven', 'Ekko', 'Elise', 'Ezreal',
-      'Fiora', 'Fizz', 'Garen', 'Graves', 'Irelia', 'Janna', 'Jarvan IV',
-      'Jax', 'Jinx', 'Karma', 'Katarina', 'Kayle', 'Leblanc', 'Lee Sin',
-      'Leona', 'Lux', 'Malphite', 'Morgana', 'Nasus', 'Orianna', 'Riven'
-    ]
-
+  const generateDetailedMatchData = async (matchData) => {
+    // Generate realistic team compositions using ChampionService
+    const blueTeam = await ChampionService.generateRealisticTeamComp()
+    const redTeam = await ChampionService.generateRealisticTeamComp()
+    
     const positions = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']
     
     // Generate 10 participants (5 per team)
-    const participants = Array.from({ length: 10 }, (_, i) => {
-      const isBlueTeam = i < 5
-      const teamId = isBlueTeam ? 100 : 200
-      const position = positions[i % 5]
-      const champion = champions[Math.floor(Math.random() * champions.length)]
-      
+    const participants = []
+    
+    // Blue team (team 100)
+    for (let i = 0; i < 5; i++) {
+      const position = positions[i]
+      const champion = blueTeam[i].champion
       const kills = Math.floor(Math.random() * 15)
       const deaths = Math.floor(Math.random() * 10)
       const assists = Math.floor(Math.random() * 20)
       const isCurrentPlayer = champion === matchData?.champion_name
       
-      return {
+      participants.push({
         id: i + 1,
         participant_id: i + 1,
-        team_id: teamId,
-        champion_id: Math.floor(Math.random() * 160) + 1,
+        team_id: 100,
+        champion_id: blueTeam[i].id,
         champion_name: champion,
         champion_level: Math.floor(Math.random() * 8) + 13,
-        kills,
-        deaths,
-        assists,
+        kills, deaths, assists,
         gold_earned: Math.floor(Math.random() * 15000) + 8000,
         total_damage_dealt_to_champions: Math.floor(Math.random() * 40000) + 15000,
         total_damage_taken: Math.floor(Math.random() * 30000) + 10000,
@@ -191,7 +186,7 @@ function SpecificMatch({ match, onNavigate }) {
         item6: Math.floor(Math.random() * 10) + 2000,
         summoner1_id: Math.floor(Math.random() * 14) + 1,
         summoner2_id: Math.floor(Math.random() * 14) + 1,
-        win: isBlueTeam ? (matchData?.win ?? Math.random() > 0.5) : !(matchData?.win ?? Math.random() > 0.5),
+        win: matchData?.win ?? Math.random() > 0.5,
         team_position: position,
         lane: position === 'MIDDLE' ? 'MID' : position === 'BOTTOM' ? 'BOT' : position,
         double_kills: Math.floor(Math.random() * 3),
@@ -200,15 +195,63 @@ function SpecificMatch({ match, onNavigate }) {
         penta_kills: Math.random() > 0.98 ? 1 : 0,
         isCurrentPlayer,
         summoners: {
-          summoner_name: isCurrentPlayer ? 'You' : `Player${i + 1}`,
+          summoner_name: isCurrentPlayer ? 'You' : `${champion}Player`,
           summoner_level: Math.floor(Math.random() * 200) + 30
         }
-      }
-    })
+      })
+    }
+    
+    // Red team (team 200)
+    for (let i = 0; i < 5; i++) {
+      const position = positions[i]
+      const champion = redTeam[i].champion
+      const kills = Math.floor(Math.random() * 15)
+      const deaths = Math.floor(Math.random() * 10)
+      const assists = Math.floor(Math.random() * 20)
+      
+      participants.push({
+        id: i + 6,
+        participant_id: i + 6,
+        team_id: 200,
+        champion_id: redTeam[i].id,
+        champion_name: champion,
+        champion_level: Math.floor(Math.random() * 8) + 13,
+        kills, deaths, assists,
+        gold_earned: Math.floor(Math.random() * 15000) + 8000,
+        total_damage_dealt_to_champions: Math.floor(Math.random() * 40000) + 15000,
+        total_damage_taken: Math.floor(Math.random() * 30000) + 10000,
+        total_minions_killed: Math.floor(Math.random() * 200) + 50,
+        neutral_minions_killed: position === 'JUNGLE' ? Math.floor(Math.random() * 100) + 50 : Math.floor(Math.random() * 20),
+        vision_score: Math.floor(Math.random() * 60) + 20,
+        wards_placed: Math.floor(Math.random() * 20) + 5,
+        wards_killed: Math.floor(Math.random() * 15) + 2,
+        item0: Math.floor(Math.random() * 100) + 1000,
+        item1: Math.floor(Math.random() * 100) + 2000,
+        item2: Math.floor(Math.random() * 100) + 3000,
+        item3: Math.floor(Math.random() * 100) + 1000,
+        item4: Math.floor(Math.random() * 100) + 2000,
+        item5: Math.floor(Math.random() * 100) + 3000,
+        item6: Math.floor(Math.random() * 10) + 2000,
+        summoner1_id: Math.floor(Math.random() * 14) + 1,
+        summoner2_id: Math.floor(Math.random() * 14) + 1,
+        win: !(matchData?.win ?? Math.random() > 0.5),
+        team_position: position,
+        lane: position === 'MIDDLE' ? 'MID' : position === 'BOTTOM' ? 'BOT' : position,
+        double_kills: Math.floor(Math.random() * 3),
+        triple_kills: Math.floor(Math.random() * 2),
+        quadra_kills: Math.random() > 0.9 ? 1 : 0,
+        penta_kills: Math.random() > 0.98 ? 1 : 0,
+        isCurrentPlayer: false,
+        summoners: {
+          summoner_name: `${champion}Player`,
+          summoner_level: Math.floor(Math.random() * 200) + 30
+        }
+      })
+    }
 
     return {
       id: matchData?.id || 1,
-      match_id: matchData?.matches?.match_id || `MATCH_${Date.now()}`,
+      match_id: matchData?.matches?.match_id || `MOCK_${Date.now()}`,
       game_creation: Date.now() - Math.floor(Math.random() * 86400000),
       game_duration: matchData?.matches?.game_duration || Math.floor(Math.random() * 1800) + 900,
       game_mode: matchData?.matches?.game_mode || 'Classic',
