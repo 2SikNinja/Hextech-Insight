@@ -164,12 +164,6 @@ function AccountCreation({ onNavigate }) {
           </p>
           <div className="success-actions">
             <button 
-              onClick={() => setSuccess(false)}
-              className="back-button"
-            >
-              Create Another Account
-            </button>
-            <button 
               onClick={() => onNavigate('signin')}
               className="signin-button"
             >

@@ -191,7 +191,7 @@ function MatchHistory({ summoner, onNavigate }) {
 
   const generateMockMatches = (summoner) => {
     const champions = [
-      'Aatrox', 'Ahri', 'Akali', 'Alistar', 'Amumu', 'Anivia', 'Annie', 'Ashe',
+      'Aatrox', 'Ahri', 'Akali', 'Alistar', 'Ammu', 'Anivia', 'Annie', 'Ashe',
       'Azir', 'Bard', 'Blitzcrank', 'Brand', 'Braum', 'Caitlyn', 'Camille', 
       'Cassiopeia', 'Darius', 'Diana', 'Draven', 'Ekko', 'Elise', 'Ezreal'
     ]
@@ -263,8 +263,15 @@ function MatchHistory({ summoner, onNavigate }) {
   }
 
   const calculateKDA = (kills, deaths, assists) => {
-    if (deaths === 0) return 'Perfect'
-    return ((kills + assists) / deaths).toFixed(2)
+    if (deaths === 0) return { value: 'Perfect', class: 'excellent' }
+    const kda = ((kills + assists) / deaths)
+    let kdaClass = 'average'
+    
+    if (kda >= 3) kdaClass = 'excellent'
+    else if (kda >= 2) kdaClass = 'good'
+    else if (kda < 1) kdaClass = 'poor'
+    
+    return { value: kda.toFixed(2), class: kdaClass }
   }
 
   const getQueueName = (queueId) => {
@@ -277,6 +284,55 @@ function MatchHistory({ summoner, onNavigate }) {
       700: 'Clash'
     }
     return queueMap[queueId] || 'Custom Game'
+  }
+
+  // Helper function to normalize champion names for image paths
+  const getChampionImageName = (championName) => {
+    if (!championName) return 'default'
+    
+    // Handle special cases for champion names that have different image file names
+    const championNameMap = {
+      'Cho\'Gath': 'Chogath',
+      'Dr. Mundo': 'DrMundo',
+      'Jarvan IV': 'JarvanIV',
+      'Kai\'Sa': 'Kaisa',
+      'Kha\'Zix': 'Khazix',
+      'Kog\'Maw': 'KogMaw',
+      'Lee Sin': 'LeeSin',
+      'Master Yi': 'MasterYi',
+      'Miss Fortune': 'MissFortune',
+      'Nunu & Willump': 'Nunu',
+      'Rek\'Sai': 'RekSai',
+      'Renata Glasc': 'Renata',
+      'Tahm Kench': 'TahmKench',
+      'Twisted Fate': 'TwistedFate',
+      'Vel\'Koz': 'Velkoz',
+      'Wukong': 'MonkeyKing',
+      'Xin Zhao': 'XinZhao'
+    }
+
+    return championNameMap[championName] || championName.replace(/[^a-zA-Z0-9]/g, '')
+  }
+
+  // Helper function to get summoner spell image names
+  const getSummonerSpellImageName = (spellId) => {
+    const spellMap = {
+      1: 'SummonerBoost',      // Cleanse
+      3: 'SummonerExhaust',    // Exhaust  
+      4: 'SummonerFlash',      // Flash
+      6: 'SummonerHaste',      // Ghost
+      7: 'SummonerHeal',       // Heal
+      11: 'SummonerSmite',     // Smite
+      12: 'SummonerTeleport',  // Teleport
+      13: 'SummonerMana',      // Clarity
+      14: 'SummonerDot',       // Ignite
+      21: 'SummonerBarrier',   // Barrier
+      30: 'SummonerPoroRecall', // To the King!
+      31: 'SummonerPoroThrow', // Poro Toss
+      32: 'SummonerSnowball'   // Mark/Dash
+    }
+    
+    return spellMap[spellId] || 'SummonerFlash' // Default to Flash if unknown
   }
 
   const handleMatchClick = (match) => {
@@ -383,28 +439,46 @@ function MatchHistory({ summoner, onNavigate }) {
               <div className="champion-info">
                 <div className="champion-image">
                   <img 
-                    src={`/league_files/15.8.1/img/champion/${match.champion_name}.png`}
+                    src={`/league_files/15.8.1/img/champion/${getChampionImageName(match.champion_name)}.png`}
                     alt={match.champion_name}
                     onError={(e) => {
-                      e.target.src = '/league_files/img/champion/default.png'
+                      // Try fallback paths
+                      if (e.target.src.includes('15.8.1')) {
+                        e.target.src = `/league_files/img/champion/${getChampionImageName(match.champion_name)}.png`
+                      } else {
+                        e.target.src = '/league_files/img/champion/default.png'
+                      }
                     }}
                   />
+                  {match.champion_level && (
+                    <span className="champion-level">{match.champion_level}</span>
+                  )}
                 </div>
                 <div className="champion-details">
                   <span className="champion-name">{match.champion_name}</span>
                   <div className="summoner-spells">
                     <img 
-                      src={`/league_files/15.8.1/img/spell/${match.spell1 || 1}.png`}
+                      src={`/league_files/15.8.1/img/spell/${getSummonerSpellImageName(match.spell1)}.png`}
                       alt="Spell 1"
                       onError={(e) => {
-                        e.target.style.display = 'none'
+                        // Try different spell image paths
+                        if (e.target.src.includes('15.8.1')) {
+                          e.target.src = `/league_files/img/spell/${getSummonerSpellImageName(match.spell1)}.png`
+                        } else {
+                          e.target.style.display = 'none'
+                        }
                       }}
                     />
                     <img 
-                      src={`/league_files/15.8.1/img/spell/${match.spell2 || 2}.png`}
+                      src={`/league_files/15.8.1/img/spell/${getSummonerSpellImageName(match.spell2)}.png`}
                       alt="Spell 2"
                       onError={(e) => {
-                        e.target.style.display = 'none'
+                        // Try different spell image paths
+                        if (e.target.src.includes('15.8.1')) {
+                          e.target.src = `/league_files/img/spell/${getSummonerSpellImageName(match.spell2)}.png`
+                        } else {
+                          e.target.style.display = 'none'
+                        }
                       }}
                     />
                   </div>
@@ -414,11 +488,22 @@ function MatchHistory({ summoner, onNavigate }) {
               <div className="match-stats">
                 <div className="kda">
                   <span className="kda-text">{match.kills}/{match.deaths}/{match.assists}</span>
-                  <span className="kda-ratio">{calculateKDA(match.kills, match.deaths, match.assists)} KDA</span>
+                  <span className={`kda-ratio ${calculateKDA(match.kills, match.deaths, match.assists).class}`}>
+                    {calculateKDA(match.kills, match.deaths, match.assists).value} KDA
+                  </span>
+                  {(match.double_kills > 0 || match.triple_kills > 0 || match.quadra_kills > 0 || match.penta_kills > 0) && (
+                    <div className="multikills">
+                      {match.penta_kills > 0 && <span className="penta">PENTA!</span>}
+                      {match.quadra_kills > 0 && <span className="quadra">QUADRA!</span>}
+                      {match.triple_kills > 0 && <span className="triple">TRIPLE!</span>}
+                      {match.double_kills > 0 && <span className="double">DOUBLE!</span>}
+                    </div>
+                  )}
                 </div>
                 <div className="additional-stats">
                   <span>CS: {match.cs || 0}</span>
                   <span>Vision: {match.vision_score || 0}</span>
+                  {match.gold && <span>Gold: {Math.round(match.gold / 1000)}k</span>}
                 </div>
               </div>
 
@@ -430,7 +515,12 @@ function MatchHistory({ summoner, onNavigate }) {
                         src={`/league_files/15.8.1/img/item/${item}.png`}
                         alt={`Item ${item}`}
                         onError={(e) => {
-                          e.target.style.display = 'none'
+                          // Try fallback item image path
+                          if (e.target.src.includes('15.8.1')) {
+                            e.target.src = `/league_files/img/item/${item}.png`
+                          } else {
+                            e.target.style.display = 'none'
+                          }
                         }}
                       />
                     )}
