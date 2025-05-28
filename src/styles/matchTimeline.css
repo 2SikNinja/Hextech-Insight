@@ -1,0 +1,256 @@
+/* Create src/styles/matchTimeline.css */
+.match-timeline {
+	background: rgba(16, 29, 40, 0.9);
+	border-radius: 16px;
+	padding: 2rem;
+	border: 1px solid rgba(200, 155, 60, 0.3);
+	color: #f0e6d2;
+}
+
+.timeline-header {
+	text-align: center;
+	margin-bottom: 2rem;
+	padding-bottom: 1rem;
+	border-bottom: 2px solid rgba(200, 155, 60, 0.3);
+}
+
+.timeline-header h3 {
+	color: #c89b3c;
+	font-size: 1.5rem;
+	margin-bottom: 0.5rem;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.timeline-header p {
+	color: #cdbe91;
+	font-size: 1rem;
+}
+
+.timeline-container {
+	position: relative;
+	max-height: 600px;
+	overflow-y: auto;
+	padding: 1rem 0;
+}
+
+.timeline-line {
+	position: absolute;
+	left: 60px;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: linear-gradient(to bottom,
+			rgba(200, 155, 60, 0.8),
+			rgba(200, 155, 60, 0.3));
+}
+
+.timeline-event {
+	display: flex;
+	align-items: center;
+	margin-bottom: 1.5rem;
+	position: relative;
+	padding: 0.5rem 0;
+}
+
+.event-time {
+	width: 50px;
+	text-align: right;
+	color: #a09b8c;
+	font-size: 0.9rem;
+	font-weight: 600;
+	font-family: 'Courier New', monospace;
+}
+
+.event-marker {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: rgba(16, 29, 40, 0.9);
+	border: 3px solid rgba(200, 155, 60, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 1rem;
+	position: relative;
+	z-index: 2;
+	transition: all 0.3s ease;
+}
+
+.timeline-event:hover .event-marker {
+	border-color: #c89b3c;
+	background: rgba(200, 155, 60, 0.1);
+	transform: scale(1.1);
+}
+
+.event-icon {
+	font-size: 1.2rem;
+}
+
+.event-details {
+	flex: 1;
+	background: rgba(0, 0, 0, 0.3);
+	padding: 1rem 1.5rem;
+	border-radius: 12px;
+	border-left: 4px solid rgba(200, 155, 60, 0.3);
+	transition: all 0.3s ease;
+}
+
+.timeline-event:hover .event-details {
+	background: rgba(0, 0, 0, 0.5);
+	border-left-color: #c89b3c;
+	transform: translateX(5px);
+}
+
+.event-title {
+	color: #f0e6d2;
+	font-size: 1.1rem;
+	font-weight: 700;
+	margin-bottom: 0.3rem;
+}
+
+.event-description {
+	color: #cdbe91;
+	font-size: 0.9rem;
+	line-height: 1.4;
+}
+
+/* Event type specific colors */
+.timeline-event.champion_kill .event-marker {
+	border-color: rgba(255, 71, 87, 0.7);
+}
+
+.timeline-event.champion_kill .event-details {
+	border-left-color: rgba(255, 71, 87, 0.5);
+}
+
+.timeline-event.building_kill .event-marker {
+	border-color: rgba(255, 193, 7, 0.7);
+}
+
+.timeline-event.building_kill .event-details {
+	border-left-color: rgba(255, 193, 7, 0.5);
+}
+
+.timeline-event.elite_monster_kill .event-marker,
+.timeline-event.monster_kill .event-marker {
+	border-color: rgba(156, 89, 182, 0.7);
+}
+
+.timeline-event.elite_monster_kill .event-details,
+.timeline-event.monster_kill .event-details {
+	border-left-color: rgba(156, 89, 182, 0.5);
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state,
+.no-events {
+	text-align: center;
+	padding: 3rem 2rem;
+}
+
+.loading-state .loading-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid rgba(200, 155, 60, 0.3);
+	border-top: 3px solid #c89b3c;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.loading-state p,
+.error-state p,
+.no-events p {
+	color: #cdbe91;
+	font-size: 1.1rem;
+}
+
+.error-state h3 {
+	color: #c89b3c;
+	margin-bottom: 1rem;
+	font-size: 1.3rem;
+}
+
+.no-events {
+	color: #a09b8c;
+	font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.match-timeline {
+		padding: 1rem;
+	}
+
+	.timeline-container {
+		max-height: 400px;
+	}
+
+	.timeline-line {
+		left: 40px;
+	}
+
+	.event-time {
+		width: 35px;
+		font-size: 0.8rem;
+	}
+
+	.event-marker {
+		width: 30px;
+		height: 30px;
+		margin: 0 0.5rem;
+	}
+
+	.event-icon {
+		font-size: 1rem;
+	}
+
+	.event-details {
+		padding: 0.8rem 1rem;
+	}
+
+	.event-title {
+		font-size: 1rem;
+	}
+
+	.event-description {
+		font-size: 0.8rem;
+	}
+}
+
+@media (max-width: 480px) {
+	.timeline-event {
+		flex-direction: column;
+		align-items: flex-start;
+		text-align: left;
+	}
+
+	.timeline-line {
+		display: none;
+	}
+
+	.event-time {
+		width: auto;
+		margin-bottom: 0.5rem;
+		text-align: left;
+	}
+
+	.event-marker {
+		margin: 0.5rem 0;
+	}
+
+	.event-details {
+		width: 100%;
+		margin-left: 0;
+	}  }
