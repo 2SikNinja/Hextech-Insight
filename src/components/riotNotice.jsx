@@ -110,7 +110,7 @@ function RiotNotice() {
             For questions about this notice, data deletion requests, or other concerns, please contact us at:
           </p>
           <div className="contact-details">
-            <p><strong>Email:</strong> privacy@hextechinsight.com</p>
+            <p><strong>Email:</strong> peter.nguyen2121@gmail.com</p>
             <p><strong>Data Protection:</strong> Requests for data deletion or modification can be made through your account settings or by contacting us directly.</p>
           </div>
         </section>

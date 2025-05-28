@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { DatabaseService } from '../database/database-service.js'
-import supabase from '../database/supabase-client.js'
 import '../styles/userSignIn.css'
 
 function UserSignIn({ onNavigate }) {
@@ -12,6 +11,7 @@ function UserSignIn({ onNavigate }) {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -21,8 +21,9 @@ function UserSignIn({ onNavigate }) {
       [name]: type === 'checkbox' ? checked : value
     }))
 
-    // Clear errors when user starts typing
+    // Clear messages when user starts typing
     if (error) setError(null)
+    if (success) setSuccess(null)
   }
 
   const validateForm = () => {
@@ -34,6 +35,9 @@ function UserSignIn({ onNavigate }) {
     }
     if (!formData.password) {
       return 'Password is required'
+    }
+    if (formData.password.length < 6) {
+      return 'Password must be at least 6 characters long'
     }
     return null
   }
@@ -49,10 +53,13 @@ function UserSignIn({ onNavigate }) {
 
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
+      console.log('🔐 Attempting sign in...')
+      
       const { data, error: signInError } = await DatabaseService.signIn(
-        formData.email,
+        formData.email.trim(),
         formData.password
       )
 
@@ -60,19 +67,37 @@ function UserSignIn({ onNavigate }) {
         throw signInError
       }
 
-      // Success! The auth state change listener in App.jsx will handle the redirect
-      console.log('Sign in successful:', data)
+      if (data?.user) {
+        console.log('✅ Sign in successful!')
+        setSuccess('Sign in successful! Redirecting...')
+        
+        // Clear form
+        setFormData({
+          email: '',
+          password: '',
+          rememberMe: false
+        })
+
+        // The auth state change listener in App.jsx will handle the redirect
+        // Give it a moment to process
+        setTimeout(() => {
+          onNavigate('search')
+        }, 1000)
+      }
 
     } catch (err) {
-      console.error('Sign in error:', err)
+      console.error('❌ Sign in error:', err)
       
       // Handle specific Supabase errors
-      if (err.message.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please try again.')
-      } else if (err.message.includes('Email not confirmed')) {
+      if (err.message?.includes('Invalid login credentials') || 
+          err.message?.includes('Invalid email or password')) {
+        setError('Invalid email or password. Please check your credentials and try again.')
+      } else if (err.message?.includes('Email not confirmed')) {
         setError('Please check your email and click the confirmation link before signing in.')
-      } else if (err.message.includes('Too many requests')) {
-        setError('Too many sign in attempts. Please wait a moment and try again.')
+      } else if (err.message?.includes('Too many requests')) {
+        setError('Too many sign in attempts. Please wait a few minutes and try again.')
+      } else if (err.message?.includes('User not found')) {
+        setError('No account found with this email address. Please sign up first.')
       } else {
         setError('Failed to sign in. Please check your credentials and try again.')
       }
@@ -84,36 +109,35 @@ function UserSignIn({ onNavigate }) {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
-      const { data, error: googleError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      })
+      console.log('🔐 Attempting Google sign in...')
+      
+      const { data, error: googleError } = await DatabaseService.signInWithGoogle()
 
       if (googleError) {
         throw googleError
       }
 
+      console.log('🔄 Google sign in initiated, awaiting redirect...')
+      setSuccess('Redirecting to Google...')
+
       // The redirect will happen automatically
-      console.log('Google sign in initiated:', data)
+      // No need to manually redirect here
 
     } catch (err) {
-      console.error('Google sign in error:', err)
+      console.error('❌ Google sign in error:', err)
       
       // Handle specific Google OAuth errors
-      if (err.message.includes('popup_closed_by_user')) {
+      if (err.message?.includes('popup_closed_by_user')) {
         setError('Sign in was cancelled. Please try again.')
-      } else if (err.message.includes('network')) {
-        setError('Network error. Please check your connection and try again.')
-      } else if (err.message.includes('OAuth')) {
+      } else if (err.message?.includes('network') || err.message?.includes('Failed to fetch')) {
+        setError('Network error. Please check your internet connection and try again.')
+      } else if (err.message?.includes('OAuth')) {
         setError('Google sign in is temporarily unavailable. Please try email sign in instead.')
+      } else if (err.message?.includes('Invalid provider')) {
+        setError('Google sign in is not properly configured. Please contact support.')
       } else {
         setError('Failed to sign in with Google. Please try again or use email sign in.')
       }
@@ -128,25 +152,32 @@ function UserSignIn({ onNavigate }) {
       return
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
+      console.log('🔄 Sending password reset email...')
+      
+      const { data, error: resetError } = await DatabaseService.resetPassword(formData.email.trim())
 
       if (resetError) {
         throw resetError
       }
 
-      setError('Password reset email sent! Check your inbox.')
-      setTimeout(() => setError(null), 5000)
+      setSuccess('Password reset email sent! Please check your inbox and follow the instructions.')
+      setError(null)
       
     } catch (err) {
-      console.error('Password reset error:', err)
+      console.error('❌ Password reset error:', err)
       
-      if (err.message.includes('Email not found')) {
+      if (err.message?.includes('Email not found')) {
         setError('No account found with this email address.')
-      } else if (err.message.includes('Too many requests')) {
+      } else if (err.message?.includes('Too many requests')) {
         setError('Too many password reset attempts. Please wait before trying again.')
+      } else if (err.message?.includes('Invalid email')) {
+        setError('Please enter a valid email address.')
       } else {
         setError('Failed to send password reset email. Please try again.')
       }
@@ -173,6 +204,7 @@ function UserSignIn({ onNavigate }) {
               placeholder="Enter your email"
               disabled={loading || googleLoading}
               autoComplete="email"
+              required
             />
           </div>
 
@@ -187,6 +219,7 @@ function UserSignIn({ onNavigate }) {
               placeholder="Enter your password"
               disabled={loading || googleLoading}
               autoComplete="current-password"
+              required
             />
           </div>
 
@@ -218,6 +251,12 @@ function UserSignIn({ onNavigate }) {
           {error && (
             <div className="error-message">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="success-message">
+              {success}
             </div>
           )}
 
