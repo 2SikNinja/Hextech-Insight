@@ -41,7 +41,7 @@ Riot rate limits are respected by fetching only matches that are not already sto
 
 ## Running locally
 
-Requirements: Node.js 20.9 or newer and Python 3.10 or newer.
+Requirements: Node.js 20.19 or newer (22 LTS recommended) and Python 3.10 or newer. Older Node versions fail to build Tailwind CSS with a "require() of ES Module" error.
 
 1. **Install dependencies**
 
