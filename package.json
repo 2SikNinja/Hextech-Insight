@@ -1,28 +1,43 @@
 {
   "name": "hextech-insight",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "description": "League of Legends match history and player analytics",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "concurrently --names \"next,python\" --prefix-colors \"cyan,yellow\" \"npm:dev:next\" \"npm:dev:python\"",
+    "dev:next": "next dev",
+    "dev:python": "python -m uvicorn api.index:app --reload --port 8000",
+    "setup:python": "python -m pip install -r requirements-dev.txt",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:python": "python -m pytest tests"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@fontsource-variable/cinzel": "^5.2.0",
+    "@fontsource/barlow": "^5.3.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "next": "^16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react-swc": "^3.8.0",
-    "eslint": "^9.22.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^16.0.0",
-    "vite": "^6.3.1"
+    "@tailwindcss/turbopack": "^4.3.5",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "concurrently": "^10.0.7",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.4.5",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }
