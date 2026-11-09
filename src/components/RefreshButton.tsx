@@ -14,7 +14,7 @@ export function RefreshButton({ puuid }: { puuid: string }) {
       <button
         type="submit"
         disabled={isPending}
-        className="inline-flex items-center gap-2 bg-teal px-3 py-1.5 text-sm font-semibold text-abyss transition-colors hover:bg-parchment disabled:cursor-wait disabled:opacity-70"
+        className="inline-flex items-center gap-2 bg-accent px-3 py-1.5 text-sm font-semibold text-canvas transition-colors hover:bg-ink disabled:cursor-wait disabled:opacity-70"
       >
         <svg
           aria-hidden

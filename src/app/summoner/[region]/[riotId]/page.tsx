@@ -60,7 +60,7 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
       <PageMessage title={friendly.title} tone="error">
         <p>{friendly.message}</p>
         <p>
-          <Link href="/" className="text-gold hover:text-parchment">
+          <Link href="/" className="text-accent hover:text-ink">
             Search again
           </Link>
         </p>
@@ -83,13 +83,13 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
       {/* Profile */}
       <header className="flex flex-wrap items-center gap-5 border-b border-line pb-6">
         <div className="relative">
-          <GameImage src={iconUrl} alt="" size={88} className="hextech-frame" />
-          <span className="tabular absolute -bottom-2 left-1/2 -translate-x-1/2 border border-gold-dim bg-abyss px-2 text-xs text-parchment">
+          <GameImage src={iconUrl} alt="" size={88} className="ring-1 ring-line-strong" />
+          <span className="tabular absolute -bottom-2 left-1/2 -translate-x-1/2 border border-accent-soft bg-canvas px-2 text-xs text-ink">
             {summoner.summoner_level}
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-3xl font-semibold text-parchment">
+          <h1 className="truncate text-3xl font-semibold text-ink">
             {summoner.game_name}
             <span className="ml-1 font-normal text-muted">#{summoner.tag_line}</span>
           </h1>
@@ -112,7 +112,7 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
       </header>
 
       {lookup.ingest?.rateLimited && (
-        <p role="status" className="mt-4 border-l-2 border-gold bg-panel px-4 py-3 text-sm text-text">
+        <p role="status" className="mt-4 border-l-2 border-accent bg-surface px-4 py-3 text-sm text-text">
           Riot&apos;s API is busy, so only some recent games loaded. Press Update in a minute to get the rest.
         </p>
       )}
@@ -131,7 +131,7 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
 
         <section aria-labelledby="history-heading" className="min-w-0">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="history-heading" className="text-lg font-semibold text-parchment">
+            <h2 id="history-heading" className="text-lg font-semibold text-ink">
               Recent games
             </h2>
             <QueueTabs basePath={basePath} activeSlug={queueFilter.slug} />
@@ -148,7 +148,7 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
   )
 }
 
-/** Champion icon and name maps for the client-side stats panel. */
+/** Champion icon and name maps for the client-side stats surface. */
 function championLookups(gameData: GameData) {
   const championIcons: Record<string, string> = {}
   const championNames: Record<string, string> = {}
@@ -171,7 +171,7 @@ function QueueTabs({ basePath, activeSlug }: { basePath: string; activeSlug: str
             aria-current={isActive ? 'page' : undefined}
             scroll={false}
             className={`border px-3 py-1 transition-colors ${
-              isActive ? 'border-gold bg-gold/10 text-gold' : 'border-line text-muted hover:border-line-strong hover:text-text'
+              isActive ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:border-line-strong hover:text-text'
             }`}
           >
             {filter.label}
@@ -184,8 +184,8 @@ function QueueTabs({ basePath, activeSlug }: { basePath: string; activeSlug: str
 
 function EmptyHistory({ region, filterLabel, isFiltered }: { region: Region; filterLabel: string; isFiltered: boolean }) {
   return (
-    <div className="border border-line bg-panel px-5 py-10 text-center">
-      <p className="text-parchment">
+    <div className="border border-line bg-surface px-5 py-10 text-center">
+      <p className="text-ink">
         {isFiltered ? `No ${filterLabel} games stored for this player.` : 'No recent games found.'}
       </p>
       <p className="mt-2 text-sm text-muted">
@@ -201,20 +201,20 @@ function SummonerSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8" role="status" aria-label="Loading player">
       <div className="flex items-center gap-5 border-b border-line pb-6">
-        <div className="size-[88px] animate-pulse bg-panel-raised" />
+        <div className="size-[88px] animate-pulse bg-surface-muted" />
         <div className="flex flex-col gap-2">
-          <div className="h-8 w-56 animate-pulse bg-panel-raised" />
-          <div className="h-4 w-32 animate-pulse bg-panel-raised" />
+          <div className="h-8 w-56 animate-pulse bg-surface-muted" />
+          <div className="h-4 w-32 animate-pulse bg-surface-muted" />
         </div>
       </div>
       <p className="mt-4 text-sm text-muted">
         Loading player. The first lookup downloads their recent games from Riot and can take a few seconds.
       </p>
       <div className="mt-6 grid gap-6 lg:grid-cols-[20rem_1fr]">
-        <div className="h-64 animate-pulse bg-panel" />
+        <div className="h-64 animate-pulse bg-surface" />
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="h-24 animate-pulse bg-panel" />
+            <div key={index} className="h-24 animate-pulse bg-surface" />
           ))}
         </div>
       </div>

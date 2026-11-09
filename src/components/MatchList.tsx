@@ -42,7 +42,7 @@ export function MatchList({ entries, gameData, regionSlug }: MatchListProps) {
 }
 
 function resultStyle(win: boolean, remake: boolean) {
-  if (remake) return { label: 'Remake', edge: 'bg-line-strong', wash: 'bg-panel', text: 'text-muted' }
+  if (remake) return { label: 'Remake', edge: 'bg-line-strong', wash: 'bg-surface', text: 'text-muted' }
   return win
     ? { label: 'Victory', edge: 'bg-win', wash: 'bg-win-wash', text: 'text-win' }
     : { label: 'Defeat', edge: 'bg-loss', wash: 'bg-loss-wash', text: 'text-loss' }
@@ -70,7 +70,7 @@ function MatchRow({ entry, gameData, regionSlug }: { entry: HistoryEntry; gameDa
 
       {/* Queue, result, timing */}
       <div className="col-span-2 flex flex-wrap items-baseline gap-x-3 text-sm sm:col-span-1 sm:block">
-        <p className="font-semibold text-parchment">{getQueueName(player.queue_id)}</p>
+        <p className="font-semibold text-ink">{getQueueName(player.queue_id)}</p>
         <p className={`font-semibold ${result.text}`}>{result.label}</p>
         <p className="tabular text-muted">{formatDuration(player.duration_secs)}</p>
         <p className="text-muted">
@@ -82,7 +82,7 @@ function MatchRow({ entry, gameData, regionSlug }: { entry: HistoryEntry; gameDa
       <div className="flex items-center gap-1">
         <div className="relative">
           <GameImage src={championIconUrl(gameData, player.champion_id, player.champion_name)} alt={champion} size={48} />
-          <span className="tabular absolute -bottom-1 -right-1 bg-abyss px-1 text-xs text-parchment ring-1 ring-line">
+          <span className="tabular absolute -bottom-1 -right-1 bg-canvas px-1 text-xs text-ink ring-1 ring-line">
             {player.champion_level}
           </span>
         </div>
@@ -98,14 +98,14 @@ function MatchRow({ entry, gameData, regionSlug }: { entry: HistoryEntry; gameDa
 
       {/* KDA with the final build underneath */}
       <div className="min-w-0">
-        <p className="tabular text-lg font-semibold leading-tight text-parchment">
-          {player.kills} <span className="text-muted">/</span> <span className="text-loss">{player.deaths}</span>{' '}
+        <p className="tabular text-lg font-semibold leading-tight text-ink">
+          {player.kills} <span className="text-muted">/</span> {player.deaths}{' '}
           <span className="text-muted">/</span> {player.assists}
           <span className="ml-2 text-sm font-normal text-muted">
             {formatKdaRatio(player.kills, player.deaths, player.assists)} KDA
           </span>
         </p>
-        {multikill && <p className="text-xs font-semibold text-gold">{multikill}</p>}
+        {multikill && <p className="text-xs font-semibold text-accent">{multikill}</p>}
         <ul className="mt-1.5 flex gap-0.5" aria-label="Items">
           {player.items.map((itemId, slot) => (
             <li key={slot} className={slot === 6 ? 'ml-1' : undefined}>
@@ -141,7 +141,7 @@ function MatchRow({ entry, gameData, regionSlug }: { entry: HistoryEntry; gameDa
 
       <Link
         href={`/match/${player.match_id}?player=${encodeURIComponent(player.puuid)}`}
-        className="col-span-2 justify-self-start text-sm font-semibold text-gold hover:text-parchment sm:col-span-4 lg:col-span-1 lg:justify-self-end lg:self-stretch lg:border-l lg:border-line/70 lg:pl-3"
+        className="col-span-2 justify-self-start text-sm font-semibold text-accent hover:text-ink sm:col-span-4 lg:col-span-1 lg:justify-self-end lg:self-stretch lg:border-l lg:border-line/70 lg:pl-3"
       >
         <span className="flex h-full items-center">Details</span>
       </Link>
@@ -175,7 +175,7 @@ function Roster({
                   src={championIconUrl(gameData, entry.champion_id, entry.champion_name)}
                   alt={label}
                   size={20}
-                  className={entry.puuid === focusPuuid ? 'ring-2 ring-gold' : 'opacity-80 hover:opacity-100'}
+                  className={entry.puuid === focusPuuid ? 'ring-2 ring-accent' : 'opacity-80 hover:opacity-100'}
                 />
               )
               return (

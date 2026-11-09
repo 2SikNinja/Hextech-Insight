@@ -78,10 +78,10 @@ function kdaText(kda: number | null): string {
   return kda === null ? 'Perfect' : kda.toFixed(2)
 }
 
+// Strong results are highlighted; weaker ones stay neutral rather than being
+// marked in red, in line with Riot's policy against shaming players.
 function winRateColor(winRate: number): string {
-  if (winRate >= 0.6) return 'text-teal'
-  if (winRate < 0.45) return 'text-loss'
-  return 'text-text'
+  return winRate >= 0.6 ? 'text-accent' : 'text-text'
 }
 
 export function StatsPanel({ puuid, queueIds, queueLabel, championIcons, championNames }: StatsPanelProps) {
@@ -110,9 +110,9 @@ export function StatsPanel({ puuid, queueIds, queueLabel, championIcons, champio
   const state: LoadState = loaded?.key === queryKey ? loaded.state : { status: 'loading' }
 
   return (
-    <section aria-labelledby="stats-heading" className="border border-line bg-panel">
+    <section aria-labelledby="stats-heading" className="border border-line bg-surface">
       <header className="border-b border-line px-4 py-3">
-        <h2 id="stats-heading" className="font-semibold text-parchment">
+        <h2 id="stats-heading" className="font-semibold text-ink">
           Performance
         </h2>
         <p className="text-sm text-muted">
@@ -174,10 +174,9 @@ function StatsBody({
             </li>
           ))}
         </ol>
-        {stats.streak && stats.streak.count >= 2 && (
-          <p className="mt-2 text-sm text-muted">
-            On a {stats.streak.count} game {stats.streak.kind} streak
-          </p>
+        {/* Only win streaks are called out; loss streaks are not highlighted. */}
+        {stats.streak?.kind === 'win' && stats.streak.count >= 3 && (
+          <p className="mt-2 text-sm text-accent">{stats.streak.count} wins in a row</p>
         )}
       </div>
 
@@ -194,7 +193,7 @@ function StatsBody({
       {/* Champions */}
       {stats.champions.length > 0 && (
         <div className="px-4 py-4">
-          <h3 className="mb-2 text-sm font-semibold text-parchment">Champions</h3>
+          <h3 className="mb-2 text-sm font-semibold text-ink">Champions</h3>
           <table className="tabular w-full text-sm">
             <thead className="sr-only">
               <tr>
@@ -234,7 +233,7 @@ function StatsBody({
       {/* Roles */}
       {stats.roles.length > 0 && (
         <div className="px-4 py-4">
-          <h3 className="mb-3 text-sm font-semibold text-parchment">Roles</h3>
+          <h3 className="mb-3 text-sm font-semibold text-ink">Roles</h3>
           <ul className="flex flex-col gap-2.5 text-sm">
             {stats.roles.map((role) => (
               <li key={role.position}>
@@ -244,8 +243,8 @@ function StatsBody({
                     {role.games} played, <span className={winRateColor(role.winRate)}>{formatPercent(role.winRate)}</span> won
                   </span>
                 </div>
-                <div className="mt-1 h-1.5 bg-abyss" aria-hidden>
-                  <div className="h-full bg-gold-dim" style={{ width: `${Math.max(4, role.share * 100)}%` }} />
+                <div className="mt-1 h-1.5 bg-canvas" aria-hidden>
+                  <div className="h-full bg-accent-soft" style={{ width: `${Math.max(4, role.share * 100)}%` }} />
                 </div>
               </li>
             ))}
@@ -266,7 +265,7 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
   return (
     <div>
       <dt className="text-muted">{label}</dt>
-      <dd className="text-base font-semibold text-parchment">
+      <dd className="text-base font-semibold text-ink">
         {value}
         {detail && <span className="ml-2 text-sm font-normal text-muted">{detail}</span>}
       </dd>
@@ -277,11 +276,11 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
 function StatsSkeleton() {
   return (
     <div className="flex flex-col gap-3 px-4 py-5" aria-label="Loading stats" role="status">
-      <div className="h-8 w-24 animate-pulse bg-panel-raised" />
-      <div className="h-2 w-full animate-pulse bg-panel-raised" />
+      <div className="h-8 w-24 animate-pulse bg-surface-muted" />
+      <div className="h-2 w-full animate-pulse bg-surface-muted" />
       <div className="grid grid-cols-2 gap-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="h-9 animate-pulse bg-panel-raised" />
+          <div key={index} className="h-9 animate-pulse bg-surface-muted" />
         ))}
       </div>
     </div>

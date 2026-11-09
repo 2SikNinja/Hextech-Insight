@@ -61,8 +61,8 @@ export function SearchForm({ variant = 'hero' }: SearchFormProps) {
       <div
         className={
           isHero
-            ? 'hextech-frame flex items-stretch bg-panel transition-shadow focus-within:shadow-[0_0_24px_-4px_var(--color-teal)]'
-            : 'flex items-stretch border border-line bg-panel focus-within:border-teal'
+            ? 'flex items-stretch border-2 border-ink bg-surface transition-shadow focus-within:border-accent focus-within:shadow-[0_0_0_4px_var(--color-accent-soft)]'
+            : 'flex items-stretch border border-line bg-surface focus-within:border-accent'
         }
       >
         <label htmlFor={`${inputId}-region`} className="sr-only">
@@ -72,12 +72,12 @@ export function SearchForm({ variant = 'hero' }: SearchFormProps) {
           id={`${inputId}-region`}
           value={region}
           onChange={(event) => setChosenRegion(event.target.value)}
-          className={`cursor-pointer border-r border-line bg-transparent font-semibold text-gold outline-none focus-visible:outline-offset-[-2px] ${
+          className={`cursor-pointer border-r border-line bg-transparent font-semibold text-accent outline-none focus-visible:outline-offset-[-2px] ${
             isHero ? 'px-4 text-base' : 'px-2 text-sm'
           }`}
         >
           {regions.map((option) => (
-            <option key={option.slug} value={option.slug} className="bg-panel text-text">
+            <option key={option.slug} value={option.slug} className="bg-surface text-text">
               {option.shortLabel}
             </option>
           ))}
@@ -99,14 +99,14 @@ export function SearchForm({ variant = 'hero' }: SearchFormProps) {
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`min-w-0 flex-1 bg-transparent text-parchment placeholder:text-muted outline-none ${
+          className={`min-w-0 flex-1 bg-transparent text-ink placeholder:text-muted outline-none ${
             isHero ? 'px-4 py-4 text-lg' : 'px-3 py-1.5 text-sm'
           }`}
         />
 
         <button
           type="submit"
-          className={`font-semibold text-abyss transition-colors bg-gold hover:bg-parchment ${
+          className={`font-semibold text-canvas transition-colors bg-accent hover:bg-ink ${
             isHero ? 'px-6 text-base' : 'px-3 text-sm'
           }`}
         >

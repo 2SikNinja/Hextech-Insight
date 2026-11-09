@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
-import '@fontsource-variable/cinzel'
-import '@fontsource/barlow/400.css'
-import '@fontsource/barlow/500.css'
-import '@fontsource/barlow/600.css'
-import '@fontsource/barlow/700.css'
+import '@fontsource-variable/archivo/wdth.css'
 import './globals.css'
 import { SearchForm } from '@/components/SearchForm'
 import { getSiteUrl } from '@/lib/env'
@@ -24,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a1428',
+  themeColor: '#eef1f5',
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
@@ -33,24 +29,24 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-panel focus:px-3 focus:py-2"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-surface focus:px-3 focus:py-2"
         >
           Skip to content
         </a>
 
-        <header className="border-b border-line bg-abyss/95">
+        <header className="border-b border-line bg-surface">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
-            <Link href="/" className="font-display text-lg font-semibold tracking-wide text-parchment hover:text-gold">
+            <Link href="/" className="font-display text-lg text-ink hover:text-accent">
               Hextech Insight
             </Link>
             <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1">
               <SearchForm variant="compact" />
             </div>
             <nav aria-label="Main" className="ml-auto flex gap-5 text-sm text-muted">
-              <Link href="/favorites" className="hover:text-parchment">
+              <Link href="/favorites" className="hover:text-ink">
                 Favorites
               </Link>
-              <Link href="/legal" className="hover:text-parchment">
+              <Link href="/legal" className="hover:text-ink">
                 About
               </Link>
             </nav>

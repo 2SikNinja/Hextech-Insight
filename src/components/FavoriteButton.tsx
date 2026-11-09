@@ -21,8 +21,8 @@ export function FavoriteButton(props: FavoriteButtonProps) {
       aria-pressed={isSaved}
       className={`inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-semibold transition-colors ${
         isSaved
-          ? 'border-gold bg-gold/10 text-gold hover:bg-gold/20'
-          : 'border-line-strong text-text hover:border-gold hover:text-gold'
+          ? 'border-accent bg-accent/10 text-accent hover:bg-accent/20'
+          : 'border-line-strong text-text hover:border-accent hover:text-accent'
       }`}
     >
       <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5}>

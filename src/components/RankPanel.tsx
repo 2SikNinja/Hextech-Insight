@@ -1,18 +1,18 @@
 import { formatPercent, formatTier } from '@/lib/format'
 import type { SummonerRecord } from '@/lib/summoners'
 
-// Tier colors follow the ranked emblems in the game.
+// Darkened so they stay readable on a light background.
 const tierColors: Record<string, string> = {
-  IRON: '#7c6f6a',
-  BRONZE: '#a8714a',
-  SILVER: '#9fb0bd',
-  GOLD: '#d6a548',
-  PLATINUM: '#3fb7a6',
-  EMERALD: '#2fbf71',
-  DIAMOND: '#6a8ff0',
-  MASTER: '#b05fd6',
-  GRANDMASTER: '#e0533f',
-  CHALLENGER: '#f2c96b',
+  IRON: '#5e5450',
+  BRONZE: '#8a5530',
+  SILVER: '#5f7383',
+  GOLD: '#9a6f12',
+  PLATINUM: '#1c7f72',
+  EMERALD: '#147f49',
+  DIAMOND: '#3557c4',
+  MASTER: '#8237aa',
+  GRANDMASTER: '#b2301d',
+  CHALLENGER: '#8f6c0c',
 }
 
 interface RankRowProps {
@@ -26,20 +26,20 @@ interface RankRowProps {
 
 function RankRow({ queueName, tier, division, lp, wins, losses }: RankRowProps) {
   const games = (wins ?? 0) + (losses ?? 0)
-  const color = tier ? tierColors[tier] ?? '#c8aa6e' : undefined
+  const color = tier ? tierColors[tier] ?? '#5c677a' : undefined
 
   return (
     <div className="flex items-center gap-4 py-4">
       <span
         aria-hidden
-        className="grid size-12 shrink-0 place-items-center border font-display text-lg font-semibold"
+        className="grid size-12 shrink-0 place-items-center border font-display text-lg"
         style={tier ? { borderColor: color, color } : undefined}
       >
         {tier ? tier.charAt(0) : '-'}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-muted">{queueName}</p>
-        <p className="text-lg font-semibold text-parchment" style={color ? { color } : undefined}>
+        <p className="text-lg font-semibold text-ink" style={color ? { color } : undefined}>
           {formatTier(tier, division)}
         </p>
         {tier && (
@@ -55,7 +55,7 @@ function RankRow({ queueName, tier, division, lp, wins, losses }: RankRowProps) 
 
 export function RankPanel({ summoner }: { summoner: SummonerRecord }) {
   return (
-    <section aria-labelledby="rank-heading" className="border border-line bg-panel px-4">
+    <section aria-labelledby="rank-heading" className="border border-line bg-surface px-4">
       <h2 id="rank-heading" className="sr-only">
         Rank
       </h2>

@@ -1,36 +1,37 @@
 @import 'tailwindcss';
 
-/* Colors are taken from the League client: deep navy, Hextech gold, arcane teal.
-   Wins are blue and losses red, the same convention the game uses. */
+/* A light, neutral analytics look with one violet accent. It intentionally does
+   not borrow the League client's colors, fonts or ornaments (Riot's developer
+   policies ask third-party tools not to imitate official designs). Wins are
+   blue and losses red, a common stats convention. */
 @theme {
-  --color-abyss: #0a1428;
-  --color-panel: #0f1d33;
-  --color-panel-raised: #15253f;
-  --color-line: #26364d;
-  --color-line-strong: #3a4c66;
-  --color-gold: #c8aa6e;
-  --color-gold-dim: #8f7a4f;
-  --color-parchment: #f0e6d2;
-  --color-text: #d4dae3;
-  --color-muted: #8b98ab;
-  --color-teal: #0ac8b9;
-  --color-teal-dim: #0a7f78;
-  --color-win: #3a7fbf;
-  --color-win-wash: #13284a;
-  --color-loss: #c24b55;
-  --color-loss-wash: #2c1729;
+  --color-canvas: #eef1f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #e3e7ee;
+  --color-line: #d5dbe4;
+  --color-line-strong: #aeb8c6;
+  --color-ink: #141a26;
+  --color-text: #2b3445;
+  --color-muted: #5c677a;
+  --color-accent: #6a4bd6;
+  --color-accent-soft: #b9a8ef;
+  --color-accent-strong: #4c31b0;
+  --color-win: #2563c9;
+  --color-win-wash: #e7effc;
+  --color-loss: #c8372d;
+  --color-loss-wash: #fcebea;
 
-  --font-display: 'Cinzel Variable', 'Cinzel', Georgia, serif;
-  --font-sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Archivo Variable', system-ui, sans-serif;
+  --font-sans: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
-    background-color: var(--color-abyss);
+    background-color: var(--color-canvas);
     color: var(--color-text);
     font-family: var(--font-sans);
     font-size: 1rem;
@@ -44,22 +45,21 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
   ::selection {
-    background-color: var(--color-teal-dim);
-    color: var(--color-parchment);
+    background-color: var(--color-accent-strong);
+    color: #ffffff;
   }
 }
 
-/* The one decorative flourish: a gold double frame, echoing the client's buttons. */
-@utility hextech-frame {
-  border: 1px solid var(--color-gold-dim);
-  box-shadow:
-    inset 0 0 0 3px var(--color-abyss),
-    inset 0 0 0 4px color-mix(in srgb, var(--color-gold) 35%, transparent);
+/* Headlines use Archivo's widest, heaviest cut; body text stays at normal width. */
+.font-display {
+  font-stretch: 125%;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 
 @media (prefers-reduced-motion: reduce) {

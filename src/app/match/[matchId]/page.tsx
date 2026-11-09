@@ -74,7 +74,7 @@ async function MatchView({ params, searchParams }: MatchPageProps) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <header className="border-b border-line pb-5">
-        <h1 className="font-display text-2xl font-semibold text-parchment sm:text-3xl">
+        <h1 className="font-display text-2xl text-ink sm:text-3xl">
           {getQueueName(match.info.queueId, match.info.gameMode)}
         </h1>
         <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
@@ -169,19 +169,19 @@ function TeamTable({
   focusPuuid: string | null
 }) {
   const kills = team.players.reduce((total, player) => total + player.kills, 0)
-  const gold = team.players.reduce((total, player) => total + player.goldEarned, 0)
+  const teamGold = team.players.reduce((total, player) => total + player.goldEarned, 0)
   const objectives = team.info?.objectives
   const resultColor = team.win ? 'text-win' : 'text-loss'
   const edgeColor = team.win ? 'border-win' : 'border-loss'
 
   return (
-    <section aria-label={`${teamLabel(team)}, ${team.win ? 'victory' : 'defeat'}`} className={`border-t-2 ${edgeColor} bg-panel`}>
+    <section aria-label={`${teamLabel(team)}, ${team.win ? 'victory' : 'defeat'}`} className={`border-t-2 ${edgeColor} bg-surface`}>
       <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line px-4 py-3">
         <h2 className={`text-lg font-semibold ${resultColor}`}>{team.win ? 'Victory' : 'Defeat'}</h2>
         <span className="text-sm text-muted">{teamLabel(team)}</span>
         <dl className="tabular ml-auto flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <TeamStat label="Kills" value={kills} />
-          <TeamStat label="Gold" value={formatCompact(gold)} />
+          <TeamStat label="Gold" value={formatCompact(teamGold)} />
           {objectives?.tower && <TeamStat label="Towers" value={objectives.tower.kills} />}
           {objectives?.dragon && <TeamStat label="Dragons" value={objectives.dragon.kills} />}
           {objectives?.baron && <TeamStat label="Barons" value={objectives.baron.kills} />}
@@ -241,7 +241,7 @@ function TeamStat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex gap-1.5">
       <dt className="text-muted">{label}</dt>
-      <dd className="text-parchment">{value}</dd>
+      <dd className="text-ink">{value}</dd>
     </div>
   )
 }
@@ -268,12 +268,12 @@ function PlayerRow({
   const cs = player.totalMinionsKilled + player.neutralMinionsKilled
 
   return (
-    <tr className={`border-b border-line/60 last:border-b-0 ${isFocus ? 'bg-gold/10' : ''}`}>
+    <tr className={`border-b border-line/60 last:border-b-0 ${isFocus ? 'bg-accent/10' : ''}`}>
       <td className="px-4 py-2">
         <div className="flex items-center gap-2">
           <div className="relative">
             <GameImage src={championIconUrl(gameData, player.championId, player.championName)} alt={champion} size={36} />
-            <span className="absolute -bottom-1 -right-1 bg-abyss px-0.5 text-[10px] text-parchment ring-1 ring-line">
+            <span className="absolute -bottom-1 -right-1 bg-canvas px-0.5 text-[10px] text-ink ring-1 ring-line">
               {player.champLevel}
             </span>
           </div>
@@ -294,7 +294,7 @@ function PlayerRow({
             {gameName && tagLine ? (
               <Link
                 href={summonerPath(region.slug, { gameName, tagLine })}
-                className={`block max-w-40 truncate hover:text-gold ${isFocus ? 'font-semibold text-parchment' : 'text-text'}`}
+                className={`block max-w-40 truncate hover:text-accent ${isFocus ? 'font-semibold text-ink' : 'text-text'}`}
               >
                 {gameName}
               </Link>
@@ -306,14 +306,14 @@ function PlayerRow({
         </div>
       </td>
       <td className="px-2 py-2">
-        <span className="text-parchment">
+        <span className="text-ink">
           {player.kills}/{player.deaths}/{player.assists}
         </span>
         <span className="block text-xs text-muted">{formatKdaRatio(player.kills, player.deaths, player.assists)}</span>
       </td>
       <td className="w-36 px-2 py-2">
         <span className="text-text">{player.totalDamageDealtToChampions.toLocaleString('en-US')}</span>
-        <div className="mt-1 h-1.5 bg-abyss" aria-hidden>
+        <div className="mt-1 h-1.5 bg-canvas" aria-hidden>
           <div
             className="h-full bg-loss/80"
             style={{ width: `${(player.totalDamageDealtToChampions / maxDamage) * 100}%` }}
@@ -340,10 +340,10 @@ function PlayerRow({
 function MatchSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8" role="status" aria-label="Loading match">
-      <div className="h-9 w-64 animate-pulse bg-panel-raised" />
-      <div className="mt-3 h-4 w-96 max-w-full animate-pulse bg-panel-raised" />
-      <div className="mt-8 h-72 animate-pulse bg-panel" />
-      <div className="mt-6 h-72 animate-pulse bg-panel" />
+      <div className="h-9 w-64 animate-pulse bg-surface-muted" />
+      <div className="mt-3 h-4 w-96 max-w-full animate-pulse bg-surface-muted" />
+      <div className="mt-8 h-72 animate-pulse bg-surface" />
+      <div className="mt-6 h-72 animate-pulse bg-surface" />
     </div>
   )
 }

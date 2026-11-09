@@ -10,15 +10,15 @@ export function FavoritesList() {
 
   if (favorites.length === 0) {
     return (
-      <div className="border border-line bg-panel px-5 py-10 text-center">
-        <p className="text-parchment">No saved players yet.</p>
+      <div className="border border-line bg-surface px-5 py-10 text-center">
+        <p className="text-ink">No saved players yet.</p>
         <p className="mt-2 text-sm text-muted">Search for a player and press Save on their page to keep them here.</p>
       </div>
     )
   }
 
   return (
-    <ul className="divide-y divide-line border border-line bg-panel">
+    <ul className="divide-y divide-line border border-line bg-surface">
       {favorites.map((favorite) => {
         const key = favoriteKey(favorite)
         const name = `${favorite.gameName}#${favorite.tagLine}`
@@ -28,7 +28,7 @@ export function FavoritesList() {
             <div className="min-w-0 flex-1">
               <Link
                 href={summonerPath(favorite.regionSlug, favorite)}
-                className="block truncate font-semibold text-parchment hover:text-gold"
+                className="block truncate font-semibold text-ink hover:text-accent"
               >
                 {favorite.gameName}
                 <span className="ml-1 font-normal text-muted">#{favorite.tagLine}</span>

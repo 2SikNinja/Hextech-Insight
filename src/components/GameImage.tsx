@@ -20,7 +20,7 @@ export function GameImage({ src, alt, size, title, className = '', rounded = fal
     return (
       <span
         aria-hidden
-        className={`inline-block shrink-0 bg-abyss/70 ring-1 ring-line ${shape} ${className}`}
+        className={`inline-block shrink-0 bg-canvas/70 ring-1 ring-line ${shape} ${className}`}
         style={{ width: size, height: size }}
       />
     )
@@ -34,7 +34,7 @@ export function GameImage({ src, alt, size, title, className = '', rounded = fal
       width={size}
       height={size}
       loading="lazy"
-      className={`shrink-0 bg-abyss ${shape} ${className}`}
+      className={`shrink-0 bg-canvas ${shape} ${className}`}
     />
   )
 }
