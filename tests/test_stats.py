@@ -116,8 +116,8 @@ client = TestClient(service.app)
 def test_stats_endpoint_returns_camel_case(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_fetch(puuid: str, queue_ids: list[int], limit: int) -> list[dict[str, Any]]:
-        captured.update(puuid=puuid, queue_ids=queue_ids, limit=limit)
+    def fake_fetch(puuid: str, queue_ids: list[int], limit: int, champion_id: int | None = None) -> list[dict[str, Any]]:
+        captured.update(puuid=puuid, queue_ids=queue_ids, limit=limit, champion_id=champion_id)
         return [game()]
 
     monkeypatch.setattr(service, "fetch_participant_rows", fake_fetch)
@@ -128,7 +128,10 @@ def test_stats_endpoint_returns_camel_case(monkeypatch: pytest.MonkeyPatch) -> N
     assert body["sampleSize"] == 1
     assert body["overall"]["winRate"] == 1.0
     assert body["champions"][0]["championName"] == "Ahri"
-    assert captured == {"puuid": PUUID, "queue_ids": [420, 440], "limit": 50}
+    assert captured == {"puuid": PUUID, "queue_ids": [420, 440], "limit": 50, "champion_id": None}
+
+    client.get(f"/api/py/stats/{PUUID}", params={"champion": 103})
+    assert captured["champion_id"] == 103
     assert "s-maxage" in response.headers["cache-control"]
 
 

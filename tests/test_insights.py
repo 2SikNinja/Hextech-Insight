@@ -162,8 +162,8 @@ client = TestClient(service.app)
 def test_insights_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
-    def fake_fetch(puuid: str, queue_ids: list[int]):
-        captured.update(puuid=puuid, queue_ids=queue_ids)
+    def fake_fetch(puuid: str, queue_ids: list[int], champion_id: int | None = None):
+        captured.update(puuid=puuid, queue_ids=queue_ids, champion_id=champion_id)
         return [game(1), game(0)], lobby("NA1_1") + lobby("NA1_0"), []
 
     monkeypatch.setattr(service, "fetch_insight_rows", fake_fetch)
@@ -175,7 +175,7 @@ def test_insights_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body["laning"]["pendingGames"] == 2
     assert body["teammates"][0]["gameName"] == "Buddy"
     assert body["trends"][0]["rolling"]["csPerMin"] == 7.0
-    assert captured == {"puuid": ME, "queue_ids": [420]}
+    assert captured == {"puuid": ME, "queue_ids": [420], "champion_id": None}
 
 
 def test_insights_endpoint_rejects_bad_timezone_text() -> None:

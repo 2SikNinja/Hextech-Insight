@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { GameImage } from '@/components/GameImage'
 import { formatPercent, positionLabels } from '@/lib/format'
@@ -70,6 +71,10 @@ interface StatsPanelProps {
   puuid: string
   queueIds: readonly number[]
   queueLabel: string
+  /** Limit stats to one champion (champion pages). */
+  championId?: number
+  /** Profile path; when set, champion rows link to that player's champion page. */
+  championBasePath?: string
   championIcons: Record<string, string>
   championNames: Record<string, string>
 }
@@ -84,8 +89,9 @@ function winRateColor(winRate: number): string {
   return winRate >= 0.6 ? 'text-accent' : 'text-text'
 }
 
-export function StatsPanel({ puuid, queueIds, queueLabel, championIcons, championNames }: StatsPanelProps) {
-  const queryKey = `${puuid}?${queueIds.map((queueId) => `queue=${queueId}`).join('&')}`
+export function StatsPanel({ puuid, queueIds, queueLabel, championId, championBasePath, championIcons, championNames }: StatsPanelProps) {
+  const filters = [...queueIds.map((queueId) => `queue=${queueId}`), ...(championId ? [`champion=${championId}`] : [])]
+  const queryKey = `${puuid}?${filters.join('&')}`
   const [loaded, setLoaded] = useState<{ key: string; state: LoadState } | null>(null)
 
   useEffect(() => {
@@ -133,6 +139,8 @@ export function StatsPanel({ puuid, queueIds, queueLabel, championIcons, champio
           overall={state.stats.overall}
           championIcons={championIcons}
           championNames={championNames}
+          showChampions={!championId}
+          championBasePath={championBasePath}
         />
       )}
     </section>
@@ -144,11 +152,15 @@ function StatsBody({
   overall,
   championIcons,
   championNames,
+  showChampions,
+  championBasePath,
 }: {
   stats: PlayerStats
   overall: OverallStats
   championIcons: Record<string, string>
   championNames: Record<string, string>
+  showChampions: boolean
+  championBasePath?: string
 }) {
   return (
     <div className="divide-y divide-line">
@@ -191,7 +203,7 @@ function StatsBody({
       </dl>
 
       {/* Champions */}
-      {stats.champions.length > 0 && (
+      {showChampions && stats.champions.length > 0 && (
         <div className="px-4 py-4">
           <h3 className="mb-2 text-sm font-semibold text-ink">Champions</h3>
           <table className="tabular w-full text-sm">
@@ -211,7 +223,16 @@ function StatsBody({
                       <span className="flex items-center gap-2">
                         <GameImage src={championIcons[champion.championId] ?? null} alt={name} size={28} />
                         <span className="min-w-0">
-                          <span className="block truncate text-text">{name}</span>
+                          {championBasePath ? (
+                            <Link
+                              href={`${championBasePath}/champion/${champion.championId}`}
+                              className="block truncate text-text hover:text-accent"
+                            >
+                              {name}
+                            </Link>
+                          ) : (
+                            <span className="block truncate text-text">{name}</span>
+                          )}
                           <span className="block text-xs text-muted">
                             {champion.games} {champion.games === 1 ? 'game' : 'games'}
                           </span>

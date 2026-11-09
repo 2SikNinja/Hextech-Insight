@@ -67,6 +67,8 @@ const metrics: { key: MetricKey; label: string; format: (value: number) => strin
 interface InsightsPanelProps {
   puuid: string
   queueIds: readonly number[]
+  /** Limit insights to one champion (champion pages). */
+  championId?: number
   queueLabel: string
   regionSlug: string
   championIcons: Record<string, string>
@@ -81,8 +83,8 @@ function signed(value: number | null, digits = 0): string {
   return `${rounded > 0 ? '+' : ''}${rounded.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`
 }
 
-export function InsightsPanel({ puuid, queueIds, queueLabel, regionSlug, championIcons, championNames }: InsightsPanelProps) {
-  const queryKey = queueIds.map((queueId) => `queue=${queueId}`).join('&')
+export function InsightsPanel({ puuid, queueIds, championId, queueLabel, regionSlug, championIcons, championNames }: InsightsPanelProps) {
+  const queryKey = [...queueIds.map((queueId) => `queue=${queueId}`), ...(championId ? [`champion=${championId}`] : [])].join('&')
   const [loaded, setLoaded] = useState<{ key: string; state: LoadState } | null>(null)
 
   useEffect(() => {

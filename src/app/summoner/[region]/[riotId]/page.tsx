@@ -6,6 +6,7 @@ import { FavoriteButton } from '@/components/FavoriteButton'
 import { GameImage } from '@/components/GameImage'
 import { InsightsPanel } from '@/components/InsightsPanel'
 import { LiveGameButton } from '@/components/LiveGame'
+import { LpHistory } from '@/components/LpHistory'
 import { LoadMoreButton } from '@/components/LoadMoreButton'
 import { MasteryPanel } from '@/components/MasteryPanel'
 import { MatchList } from '@/components/MatchList'
@@ -21,7 +22,7 @@ import { getMatchHistory } from '@/lib/matches'
 import { getQueueFilter, queueFilters } from '@/lib/riot/queues'
 import { type Platform, type Region, getRegionBySlug } from '@/lib/riot/regions'
 import { formatRiotId, parseRiotIdSlug, summonerPath, toRiotIdSlug } from '@/lib/riot/riotId'
-import { type LookupResult, lookupSummoner, scheduleTimelineBackfill } from '@/lib/summoners'
+import { type LookupResult, getRankHistory, lookupSummoner, scheduleTimelineBackfill } from '@/lib/summoners'
 
 type SummonerPageProps = PageProps<'/summoner/[region]/[riotId]'>
 
@@ -79,9 +80,13 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
   // Fetch early-game timelines in the background for the Insights tab.
   scheduleTimelineBackfill(region, summoner.puuid)
 
-  const [gameData, history] = await Promise.all([
+  const [gameData, history, rankHistory] = await Promise.all([
     getGameData(),
     view === 'matches' ? getMatchHistory(summoner.puuid, { queueIds: queueFilter.queueIds, limit: shown }) : Promise.resolve([]),
+    getRankHistory(summoner.puuid).catch((error) => {
+      console.warn('LP history unavailable', error)
+      return []
+    }),
   ])
 
   const canonicalRiotId = { gameName: summoner.game_name, tagLine: summoner.tag_line }
@@ -141,7 +146,19 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
       <div className="mt-6 grid gap-6 lg:grid-cols-[20rem_1fr]">
         <aside className="flex flex-col gap-6">
           <RankPanel summoner={summoner} />
+          <LpHistory
+            points={rankHistory.map((point) => ({
+              queue: point.queue,
+              tier: point.tier,
+              division: point.division,
+              lp: point.lp,
+              wins: point.wins,
+              losses: point.losses,
+              recordedAt: point.recorded_at,
+            }))}
+          />
           <StatsPanel
+            championBasePath={basePath}
             key={`${summoner.refreshed_at}-${queueFilter.slug}`}
             puuid={summoner.puuid}
             queueIds={queueFilter.queueIds}
