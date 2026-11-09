@@ -118,7 +118,7 @@ export const matchSchema = z.object({
 })
 export type RiotMatch = z.infer<typeof matchSchema>
 
-// ---------- Match-V5 timeline (only the fields used for early-game stats) ----------
+// ---------- Match-V5 timeline (snapshots and events used for match details) ----------
 
 const participantFrameSchema = z.object({
   totalGold: z.number().int(),
@@ -135,6 +135,8 @@ export const timelineSchema = z.object({
       z.object({
         timestamp: z.number(),
         participantFrames: z.record(z.string(), participantFrameSchema),
+        // Events vary by type; each is read field by field in toTimelineDetails.
+        events: z.array(z.looseObject({ type: z.string(), timestamp: z.number() })).default([]),
       }),
     ),
     participants: z.array(z.object({ participantId: z.number().int(), puuid: z.string() })),

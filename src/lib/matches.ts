@@ -3,7 +3,16 @@ import { DatabaseError, getDb } from '@/lib/db'
 import { getMatch, getMatchIds, getMatchTimeline, isRiotError } from '@/lib/riot/client'
 import { type Region, getRegionFromMatchId } from '@/lib/riot/regions'
 import { type RiotMatch, matchSchema } from '@/lib/riot/schemas'
-import { type ParticipantRow, toMatchRow, toParticipantRows, toTimelineRows } from '@/lib/riot/transform'
+import {
+  type ParticipantRow,
+  type TimelineDetails,
+  toMatchRow,
+  toParticipantRows,
+  toTimelineDetails,
+  toTimelineRows,
+} from '@/lib/riot/transform'
+import { reserveBudget } from '@/lib/rateLimit'
+import type { RiotTimeline } from '@/lib/riot/schemas'
 
 // Cache-first match storage. A finished match never changes, so each one is
 // fetched from Riot exactly once and then served from Supabase forever.
@@ -179,6 +188,62 @@ async function setTimelineStatus(matchIds: string[], status: 'done' | 'unavailab
   if (error) throw new DatabaseError('update timeline status', error)
 }
 
+/** Saves early-game snapshots and full match details from one timeline. */
+async function storeTimeline(timeline: RiotTimeline): Promise<TimelineDetails> {
+  const db = getDb()
+  const matchId = timeline.metadata.matchId
+  const details = toTimelineDetails(timeline)
+
+  const { error: snapshotError } = await db
+    .from('participant_timeline')
+    .upsert(toTimelineRows(timeline), { onConflict: 'match_id,puuid', ignoreDuplicates: true })
+  if (snapshotError) throw new DatabaseError('save timeline stats', snapshotError)
+
+  const { error: detailsError } = await db
+    .from('match_timeline_details')
+    .upsert({ match_id: matchId, details }, { onConflict: 'match_id' })
+  if (detailsError) throw new DatabaseError('save match details', detailsError)
+
+  await setTimelineStatus([matchId], 'done')
+  return details
+}
+
+export type TimelineDetailsResult =
+  | { status: 'ready'; details: TimelineDetails }
+  | { status: 'busy'; retryAfterSeconds: number }
+  | { status: 'unavailable' }
+
+/**
+ * Full timeline details for the match page. Stored details are free; a missing
+ * timeline is downloaded once (1 Riot request, rate limited) and kept.
+ */
+export async function getTimelineDetails(matchId: string): Promise<TimelineDetailsResult> {
+  const { data, error } = await getDb()
+    .from('match_timeline_details')
+    .select('details')
+    .eq('match_id', matchId)
+    .maybeSingle()
+  if (error) throw new DatabaseError('load match details', error)
+  if (data) return { status: 'ready', details: data.details as TimelineDetails }
+
+  const region = getRegionFromMatchId(matchId)
+  if (!region) return { status: 'unavailable' }
+
+  const budget = await reserveBudget('match_timeline', 1)
+  if (!budget.allowed) return { status: 'busy', retryAfterSeconds: budget.retryAfterSeconds }
+
+  try {
+    return { status: 'ready', details: await storeTimeline(await getMatchTimeline(region.matchRoute, matchId)) }
+  } catch (fetchError) {
+    if (isRiotError(fetchError, 'rate_limited')) return { status: 'busy', retryAfterSeconds: fetchError.retryAfterSeconds ?? 60 }
+    if (isRiotError(fetchError, 'not_found') || isRiotError(fetchError, 'invalid_response')) {
+      await setTimelineStatus([matchId], 'unavailable')
+      return { status: 'unavailable' }
+    }
+    throw fetchError
+  }
+}
+
 /**
  * Downloads early-game snapshots for matches that do not have them yet. Runs in
  * the background after a page is sent, so it never slows a page down.
@@ -199,12 +264,7 @@ export async function ingestTimelines(
       const matchId = queue.shift()
       if (!matchId) return
       try {
-        const timeline = await getMatchTimeline(region.matchRoute, matchId)
-        const { error } = await getDb()
-          .from('participant_timeline')
-          .upsert(toTimelineRows(timeline), { onConflict: 'match_id,puuid', ignoreDuplicates: true })
-        if (error) throw new DatabaseError('save timeline stats', error)
-        await setTimelineStatus([matchId], 'done')
+        await storeTimeline(await getMatchTimeline(region.matchRoute, matchId))
         stored += 1
       } catch (error) {
         if (isRiotError(error, 'rate_limited')) rateLimited = true

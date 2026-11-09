@@ -13,6 +13,12 @@ League of Legends match history and player analytics. Search any player by Riot 
 - **Rank** for Ranked Solo/Duo and Ranked Flex
 - **Match history** with champion, spells, runes, KDA, CS, kill participation, items and the full lobby, filterable by queue
 - **Match details** for all ten players: damage, gold, CS, vision, items, objectives and bans
+- **Match breakdown** from the Match-V5 timeline (downloaded once per match and stored):
+  - **Build path:** every purchase and sale with its time, grouped into shopping trips (undos applied)
+  - **Skill order** for levels 1 to 18
+  - **Gold lead graph** minute by minute, with the biggest lead for each side and how often it changed hands
+  - **Key moments:** first blood, dragons, Baron, Herald, Voidgrubs, towers and inhibitors with times
+  - **Per-player insights** (Python): gold, CS and XP versus the lane opponent at 10 and 15 minutes, and share of team damage, gold and kills
 - **Performance stats** computed in Python: win rate, KDA, per-minute stats, recent form, streaks, and champion and role breakdowns
 - **Insights tab** computed in Python:
   - **Trends:** KDA, CS, damage, gold and vision per game with a 5-game rolling average, and how recent games compare with earlier ones
@@ -20,7 +26,7 @@ League of Legends match history and player analytics. Search any player by Riot 
   - **Lane matchups:** record and gold difference against each opponent champion
   - **By patch, time of day and session:** results per game version, per part of the day (in the viewer's timezone) and by how many games into a play session
   - **Played with:** frequent teammates and the record together
-- **Champion mastery** and a **live game** check (Spectator-V5) on every profile
+- **Champion mastery** on every profile, and a **Live game** button that shows a red dot when the player is in a game (checked on load, cached for a minute)
 - **Load older games** to extend history and stats beyond the latest 20
 - **Compare** two players side by side
 - **Link previews:** generated Open Graph images show rank and win rate when a profile is shared
@@ -126,7 +132,8 @@ Riot's policies don't allow running a public product on a development key, so re
 
 ```
 api/index.py              Python service: HTTP endpoints and Supabase queries (FastAPI)
-api/_insights.py          Python insights: trends, laning, matchups, patches, schedule, teammates
+api/_insights.py          Python player insights: trends, laning, matchups, patches, schedule, teammates
+api/_match_insights.py    Python match insights: gold lead, key moments, lane diffs and team shares
 src/app/                  Pages: home, summoner, match, compare, favorites, about
 src/components/           UI components, including the hand-built SVG trend chart
 src/lib/riot/             Riot API client, Zod schemas, regions, queue names, match and timeline transforms

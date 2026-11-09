@@ -24,8 +24,10 @@ from pydantic.alias_generators import to_camel
 
 try:  # Imported as a package locally (uvicorn api.index:app) and in tests
     from api._insights import PlayerInsights, compute_insights
+    from api._match_insights import MatchInsights, compute_match_insights
 except ImportError:  # Loaded directly from the api/ directory on Vercel
     from _insights import PlayerInsights, compute_insights  # type: ignore[no-redef]
+    from _match_insights import MatchInsights, compute_match_insights  # type: ignore[no-redef]
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -439,3 +441,33 @@ def player_insights(
 
     response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=300"
     return compute_insights(puuid, player_rows, lobby_rows, timeline_rows, tz)
+
+
+MatchIdParam = Annotated[str, PathParam(pattern=r"^[A-Z0-9]{2,5}_[0-9]{5,15}$")]
+
+
+def fetch_match_rows(match_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    match_rows = supabase_get("matches", {"select": "raw_data", "match_id": f"eq.{match_id}", "limit": "1"})
+    if not match_rows:
+        return None, None
+    detail_rows = supabase_get("match_timeline_details", {"select": "details", "match_id": f"eq.{match_id}", "limit": "1"})
+    return match_rows[0]["raw_data"], (detail_rows[0]["details"] if detail_rows else None)
+
+
+@app.get("/api/py/match/{match_id}/insights", response_model=MatchInsights)
+def match_insights(match_id: MatchIdParam, response: Response) -> MatchInsights:
+    """Gold lead over time, key moments, and each player's lane diffs and team shares."""
+    try:
+        match, details = fetch_match_rows(match_id)
+    except ConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except httpx.HTTPError as error:
+        raise HTTPException(status_code=502, detail="Could not load the match from the database") from error
+    if match is None:
+        raise HTTPException(status_code=404, detail="Match not stored yet")
+
+    # A finished match never changes; cache longer once its timeline is stored.
+    response.headers["Cache-Control"] = (
+        "public, s-maxage=86400, stale-while-revalidate=604800" if details else "public, s-maxage=30"
+    )
+    return compute_match_insights(match_id, match, details)

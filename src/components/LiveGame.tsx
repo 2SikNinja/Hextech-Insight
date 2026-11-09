@@ -1,41 +1,94 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { type LiveGameState, type LiveTeam, checkLiveGameAction } from '@/app/summoner/actions'
 import { GameImage } from '@/components/GameImage'
 import { formatDuration } from '@/lib/format'
 
 const initialState: LiveGameState = { status: 'idle' }
 
-export function LiveGame({ puuid }: { puuid: string }) {
+interface LiveGameButtonProps {
+  puuid: string
+  /** Result of the automatic check made when the profile loaded. */
+  initialStatus: 'in_game' | 'not_in_game' | 'unknown'
+}
+
+/**
+ * "Live game" button for the profile header. Shows a red dot when the player is
+ * in a game; clicking opens the full live game (both teams, spells, runes).
+ */
+export function LiveGameButton({ puuid, initialStatus }: LiveGameButtonProps) {
   const [state, formAction, isPending] = useActionState(checkLiveGameAction, initialState)
+  const [isOpen, setIsOpen] = useState(false)
+  const panelId = useId()
+  const formRef = useRef<HTMLFormElement>(null)
+
+  const inGame = state.status === 'in_game' || (state.status === 'idle' && initialStatus === 'in_game')
+
+  function toggle() {
+    const opening = !isOpen
+    setIsOpen(opening)
+    // Load the details the first time the panel opens.
+    if (opening && state.status === 'idle') formRef.current?.requestSubmit()
+  }
 
   return (
-    <section aria-labelledby="live-heading" className="border border-line bg-surface">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <h2 id="live-heading" className="font-semibold text-ink">
-          Live game
-        </h2>
-        <form action={formAction}>
-          <input type="hidden" name="puuid" value={puuid} />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="border border-line-strong px-3 py-1 text-sm font-semibold text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-70"
-          >
-            {isPending ? 'Checking' : state.status === 'idle' ? 'Check' : 'Check again'}
-          </button>
-        </form>
-      </header>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        className={`inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-semibold transition-colors ${
+          inGame ? 'border-loss/60 text-ink hover:border-loss' : 'border-line-strong text-text hover:border-accent hover:text-accent'
+        }`}
+      >
+        {inGame && (
+          <span aria-hidden className="relative flex size-2.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-loss opacity-60" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-loss" />
+          </span>
+        )}
+        Live game
+        {inGame && <span className="sr-only">(in a game now)</span>}
+      </button>
 
-      <div className="px-4 py-3 text-sm" aria-live="polite">
-        {state.status === 'idle' && <p className="text-muted">See whether this player is in a game right now.</p>}
-        {state.status === 'not_in_game' && <p className="text-muted">Not in a game right now.</p>}
-        {state.status === 'error' && <p className="text-loss">{state.message}</p>}
-        {state.status === 'in_game' && <LiveGameDetails queueName={state.queueName} startedAt={state.startedAt} teams={state.teams} />}
-      </div>
-    </section>
+      <form ref={formRef} action={formAction} hidden>
+        <input type="hidden" name="puuid" value={puuid} />
+      </form>
+
+      {isOpen && (
+        <section
+          id={panelId}
+          aria-label="Live game"
+          className="absolute left-0 top-full z-30 mt-2 w-[min(36rem,calc(100vw-2rem))] border border-line-strong bg-surface shadow-xl"
+        >
+          <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+            <h2 className="font-semibold text-ink">Live game</h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => formRef.current?.requestSubmit()}
+                disabled={isPending}
+                className="px-2 py-1 text-sm text-muted hover:text-accent disabled:opacity-60"
+              >
+                {isPending ? 'Checking' : 'Refresh'}
+              </button>
+              <button type="button" onClick={() => setIsOpen(false)} className="px-2 py-1 text-sm text-muted hover:text-ink">
+                Close
+              </button>
+            </div>
+          </header>
+          <div className="max-h-[70vh] overflow-y-auto px-4 py-3 text-sm" aria-live="polite">
+            {(state.status === 'idle' || (isPending && state.status !== 'in_game')) && <p className="text-muted">Checking for a live game.</p>}
+            {!isPending && state.status === 'not_in_game' && <p className="text-muted">Not in a game right now.</p>}
+            {!isPending && state.status === 'error' && <p className="text-loss">{state.message}</p>}
+            {state.status === 'in_game' && <LiveGameDetails queueName={state.queueName} startedAt={state.startedAt} teams={state.teams} />}
+          </div>
+        </section>
+      )}
+    </div>
   )
 }
 

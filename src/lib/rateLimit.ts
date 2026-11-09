@@ -14,7 +14,7 @@ import { getEnv } from '@/lib/env'
 // Visitors are identified by a salted hash of their IP address; the IP itself
 // is never stored.
 
-export type BudgetAction = 'lookup' | 'refresh' | 'load_more' | 'live' | 'timelines'
+export type BudgetAction = 'lookup' | 'refresh' | 'load_more' | 'live' | 'live_auto' | 'timelines' | 'match_timeline'
 
 interface ActionRule {
   visitorLimit: number // per visitorWindowSeconds; 0 = no per-visitor limit
@@ -26,7 +26,11 @@ const rules: Record<BudgetAction, ActionRule> = {
   refresh: { visitorLimit: 10, visitorWindowSeconds: 600 },
   load_more: { visitorLimit: 6, visitorWindowSeconds: 600 },
   live: { visitorLimit: 20, visitorWindowSeconds: 600 },
+  // Automatic checks run inside a cached function, so they have no visitor;
+  // the site-wide budget still applies and the result is cached per player.
+  live_auto: { visitorLimit: 0, visitorWindowSeconds: 600 },
   timelines: { visitorLimit: 0, visitorWindowSeconds: 600 },
+  match_timeline: { visitorLimit: 30, visitorWindowSeconds: 600 },
 }
 
 // Personal keys allow 100 requests per 2 minutes. Keep some headroom.

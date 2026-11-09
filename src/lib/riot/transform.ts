@@ -199,3 +199,167 @@ export function toTimelineRows(timeline: RiotTimeline): TimelineRow[] {
     }
   })
 }
+
+// ---------- Timeline: full match details (build paths, skills, objectives) ----------
+
+export interface ItemEvent {
+  t: number // milliseconds into the game
+  pid: number // participantId
+  kind: 'buy' | 'sell'
+  itemId: number
+}
+
+export interface KillEvent {
+  t: number
+  killer: number // 0 when executed by a tower or minion
+  victim: number
+  assists: number[]
+}
+
+export type ObjectiveKind = 'dragon' | 'elder' | 'baron' | 'herald' | 'grubs' | 'atakhan' | 'tower' | 'inhibitor'
+
+export interface ObjectiveEvent {
+  t: number
+  kind: ObjectiveKind
+  teamId: number // team that took the objective
+  detail: string | null // dragon type, or lane for buildings
+}
+
+export interface TimelineDetails {
+  frameMs: number[] // timestamp of each frame
+  stats: Record<string, { gold: number[]; xp: number[]; cs: number[] }> // per participantId, one value per frame
+  items: ItemEvent[]
+  skills: Record<string, number[]> // per participantId: skill slot (1-4) for each level-up, in order
+  kills: KillEvent[]
+  objectives: ObjectiveEvent[]
+}
+
+function numberField(event: Record<string, unknown>, key: string): number | null {
+  const value = event[key]
+  return typeof value === 'number' ? value : null
+}
+
+function stringField(event: Record<string, unknown>, key: string): string | null {
+  const value = event[key]
+  return typeof value === 'string' ? value : null
+}
+
+const monsterKinds: Record<string, ObjectiveKind> = {
+  BARON_NASHOR: 'baron',
+  RIFTHERALD: 'herald',
+  HORDE: 'grubs',
+  ATAKHAN: 'atakhan',
+}
+
+function otherTeam(teamId: number): number {
+  return teamId === 100 ? 200 : 100
+}
+
+/**
+ * Compacts a Match-V5 timeline into what the match page needs. Item undos are
+ * applied here, so the stored list is the build as it actually ended up.
+ */
+export function toTimelineDetails(timeline: RiotTimeline): TimelineDetails {
+  const frames = timeline.info.frames
+  const stats: TimelineDetails['stats'] = {}
+  for (const { participantId } of timeline.info.participants) {
+    const key = String(participantId)
+    stats[key] = { gold: [], xp: [], cs: [] }
+    for (const frame of frames) {
+      const snapshot = frame.participantFrames[key]
+      stats[key].gold.push(snapshot?.totalGold ?? 0)
+      stats[key].xp.push(snapshot?.xp ?? 0)
+      stats[key].cs.push(snapshot ? snapshot.minionsKilled + snapshot.jungleMinionsKilled : 0)
+    }
+  }
+
+  const items: ItemEvent[] = []
+  const skills: TimelineDetails['skills'] = {}
+  const kills: KillEvent[] = []
+  const objectives: ObjectiveEvent[] = []
+
+  const removeLast = (pid: number, kind: ItemEvent['kind'], itemId: number) => {
+    for (let index = items.length - 1; index >= 0; index--) {
+      if (items[index].pid === pid && items[index].kind === kind && items[index].itemId === itemId) {
+        items.splice(index, 1)
+        return
+      }
+    }
+  }
+
+  for (const frame of frames) {
+    for (const raw of frame.events) {
+      const event = raw as Record<string, unknown>
+      const t = raw.timestamp
+      const pid = numberField(event, 'participantId')
+
+      switch (raw.type) {
+        case 'ITEM_PURCHASED': {
+          const itemId = numberField(event, 'itemId')
+          if (pid && itemId) items.push({ t, pid, kind: 'buy', itemId })
+          break
+        }
+        case 'ITEM_SOLD': {
+          const itemId = numberField(event, 'itemId')
+          if (pid && itemId) items.push({ t, pid, kind: 'sell', itemId })
+          break
+        }
+        case 'ITEM_UNDO': {
+          // Undoing a purchase: beforeId is the item, afterId is 0.
+          // Undoing a sale: beforeId is 0, afterId is the item.
+          const beforeId = numberField(event, 'beforeId') ?? 0
+          const afterId = numberField(event, 'afterId') ?? 0
+          if (!pid) break
+          if (beforeId > 0) removeLast(pid, 'buy', beforeId)
+          else if (afterId > 0) removeLast(pid, 'sell', afterId)
+          break
+        }
+        case 'SKILL_LEVEL_UP': {
+          const slot = numberField(event, 'skillSlot')
+          // EVOLVE level-ups (Kha'Zix, Kai'Sa...) are upgrades, not skill points.
+          if (pid && slot && stringField(event, 'levelUpType') !== 'EVOLVE') {
+            ;(skills[String(pid)] ??= []).push(slot)
+          }
+          break
+        }
+        case 'CHAMPION_KILL': {
+          const victim = numberField(event, 'victimId')
+          if (victim) {
+            const assists = event.assistingParticipantIds
+            kills.push({
+              t,
+              killer: numberField(event, 'killerId') ?? 0,
+              victim,
+              assists: Array.isArray(assists) ? assists.filter((value): value is number => typeof value === 'number') : [],
+            })
+          }
+          break
+        }
+        case 'ELITE_MONSTER_KILL': {
+          const teamId = numberField(event, 'killerTeamId')
+          const monster = stringField(event, 'monsterType')
+          if (!teamId || !monster) break
+          const subType = stringField(event, 'monsterSubType')
+          if (monster === 'DRAGON') {
+            const isElder = subType === 'ELDER_DRAGON'
+            objectives.push({ t, kind: isElder ? 'elder' : 'dragon', teamId, detail: isElder ? null : subType })
+          } else if (monsterKinds[monster]) {
+            objectives.push({ t, kind: monsterKinds[monster], teamId, detail: null })
+          }
+          break
+        }
+        case 'BUILDING_KILL': {
+          // teamId is the team that LOST the building.
+          const lostTeam = numberField(event, 'teamId')
+          const building = stringField(event, 'buildingType')
+          if (!lostTeam || !building) break
+          const kind = building === 'INHIBITOR_BUILDING' ? 'inhibitor' : building === 'TOWER_BUILDING' ? 'tower' : null
+          if (kind) objectives.push({ t, kind, teamId: otherTeam(lostTeam), detail: stringField(event, 'laneType') })
+          break
+        }
+      }
+    }
+  }
+
+  return { frameMs: frames.map((frame) => frame.timestamp), stats, items, skills, kills, objectives }
+}

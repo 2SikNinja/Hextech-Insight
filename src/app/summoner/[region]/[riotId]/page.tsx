@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { GameImage } from '@/components/GameImage'
 import { InsightsPanel } from '@/components/InsightsPanel'
-import { LiveGame } from '@/components/LiveGame'
+import { LiveGameButton } from '@/components/LiveGame'
 import { LoadMoreButton } from '@/components/LoadMoreButton'
 import { MasteryPanel } from '@/components/MasteryPanel'
 import { MatchList } from '@/components/MatchList'
@@ -15,10 +15,11 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { StatsPanel } from '@/components/StatsPanel'
 import { type GameData, championIconUrl, getGameData, profileIconUrl } from '@/lib/ddragon'
 import { describeError } from '@/lib/errors'
+import { getLiveStatus } from '@/lib/live'
 import { formatTier, formatTimeAgo } from '@/lib/format'
 import { getMatchHistory } from '@/lib/matches'
 import { getQueueFilter, queueFilters } from '@/lib/riot/queues'
-import { type Region, getRegionBySlug } from '@/lib/riot/regions'
+import { type Platform, type Region, getRegionBySlug } from '@/lib/riot/regions'
 import { formatRiotId, parseRiotIdSlug, summonerPath, toRiotIdSlug } from '@/lib/riot/riotId'
 import { type LookupResult, lookupSummoner, scheduleTimelineBackfill } from '@/lib/summoners'
 
@@ -124,6 +125,9 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
               Compare
             </Link>
             <RefreshButton puuid={summoner.puuid} />
+            <Suspense fallback={<LiveGameButton puuid={summoner.puuid} initialStatus="unknown" />}>
+              <LiveStatusButton platform={region.platform} puuid={summoner.puuid} />
+            </Suspense>
           </div>
         </div>
       </header>
@@ -145,7 +149,6 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
             {...lookups}
           />
           <MasteryPanel mastery={summoner.top_mastery ?? []} gameData={gameData} />
-          <LiveGame puuid={summoner.puuid} />
         </aside>
 
         <section aria-label="Games and insights" className="min-w-0">
@@ -187,6 +190,12 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
       </div>
     </div>
   )
+}
+
+/** Checks live status after the page shell is sent, so it never delays the profile. */
+async function LiveStatusButton({ platform, puuid }: { platform: Platform; puuid: string }) {
+  const status = await getLiveStatus(platform, puuid)
+  return <LiveGameButton puuid={puuid} initialStatus={status} />
 }
 
 /** Champion icon and name maps for the client-side stats surface. */

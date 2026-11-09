@@ -20,6 +20,9 @@
   --color-win-wash: #19203a;
   --color-loss: #f0605d;
   --color-loss-wash: #2d1a22;
+  /* Map sides in the gold lead chart (validated as a pair on the panel surface). */
+  --color-blue-side: #4c8dff;
+  --color-red-side: #e5504c;
 
   --font-display: 'Cinzel Variable', 'Cinzel', Georgia, serif;
   --font-sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;

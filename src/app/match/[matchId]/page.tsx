@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { GameImage } from '@/components/GameImage'
+import { MatchTimeline, type TimelinePlayer } from '@/components/MatchTimeline'
+import { formatGameTime, groupBuildPath, skillOrder } from '@/lib/buildPath'
 import { PageMessage } from '@/components/PageMessage'
 import {
   type GameData,
@@ -18,7 +20,7 @@ import {
 } from '@/lib/ddragon'
 import { describeError } from '@/lib/errors'
 import { formatCompact, formatDate, formatDuration, formatKdaRatio, formatPatch, formatPerMinute } from '@/lib/format'
-import { getMatchDetail } from '@/lib/matches'
+import { type TimelineDetailsResult, getMatchDetail, getTimelineDetails } from '@/lib/matches'
 import { getQueueName } from '@/lib/riot/queues'
 import { type Region, getRegionFromMatchId, isValidMatchId } from '@/lib/riot/regions'
 import { summonerPath } from '@/lib/riot/riotId'
@@ -112,6 +114,77 @@ async function MatchView({ params, searchParams }: MatchPageProps) {
           />
         ))}
       </div>
+
+      <h2 className="mb-4 mt-10 text-xl font-semibold text-ink">Match breakdown</h2>
+      <Suspense fallback={<TimelineSkeleton />}>
+        <TimelineSection match={match} gameData={gameData} region={region} focusPuuid={focusPuuid} />
+      </Suspense>
+    </div>
+  )
+}
+
+/** Loads (or downloads once) the match timeline and prepares builds and skills per player. */
+async function TimelineSection({
+  match,
+  gameData,
+  region,
+  focusPuuid,
+}: {
+  match: RiotMatch
+  gameData: GameData
+  region: Region
+  focusPuuid: string | null
+}) {
+  let result: TimelineDetailsResult
+  try {
+    result = await getTimelineDetails(match.metadata.matchId)
+  } catch (error) {
+    console.error('Timeline details failed', error)
+    result = { status: 'busy', retryAfterSeconds: 60 }
+  }
+  const details = result.status === 'ready' ? result.details : null
+
+  const players: TimelinePlayer[] = match.info.participants.map((participant) => {
+    const { gameName, tagLine } = getRiotIdParts(participant)
+    return {
+      participantId: participant.participantId,
+      teamId: getTeamKey(participant),
+      name: gameName ?? 'Unknown',
+      href: gameName && tagLine ? summonerPath(region.slug, { gameName, tagLine }) : null,
+      championName: championName(gameData, participant.championId, participant.championName),
+      championIcon: championIconUrl(gameData, participant.championId, participant.championName),
+      isFocus: participant.puuid === focusPuuid,
+      trips: details
+        ? groupBuildPath(details.items, participant.participantId).map((trip) => ({
+            time: formatGameTime(trip.t),
+            items: trip.entries.map((entry) => ({
+              itemId: entry.itemId,
+              name: itemName(gameData, entry.itemId),
+              icon: itemIconUrl(gameData, entry.itemId),
+              kind: entry.kind,
+              count: entry.count,
+            })),
+          }))
+        : [],
+      skills: details ? skillOrder(details.skills[String(participant.participantId)]) : [],
+    }
+  })
+
+  return (
+    <MatchTimeline
+      matchId={match.metadata.matchId}
+      players={players}
+      timelineStatus={result.status}
+      retryAfterSeconds={result.status === 'busy' ? result.retryAfterSeconds : undefined}
+    />
+  )
+}
+
+function TimelineSkeleton() {
+  return (
+    <div className="flex flex-col gap-6" role="status" aria-label="Loading match breakdown">
+      <div className="h-72 animate-pulse bg-surface" />
+      <div className="h-96 animate-pulse bg-surface" />
     </div>
   )
 }

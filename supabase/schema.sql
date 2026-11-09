@@ -338,3 +338,16 @@ revoke execute on function public.upsert_player_directory(jsonb) from public, an
 revoke execute on function public.search_players(text, text, text, integer) from public, anon, authenticated;
 grant execute on function public.upsert_player_directory(jsonb) to service_role;
 grant execute on function public.search_players(text, text, text, integer) to service_role;
+
+-- ===========================================================================
+-- Match timeline details (identical to migrations/004_match_timeline_details.sql)
+-- ===========================================================================
+
+create table if not exists public.match_timeline_details (
+  match_id    text primary key references public.matches (match_id) on delete cascade,
+  details     jsonb not null,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.match_timeline_details enable row level security;
+revoke all on public.match_timeline_details from anon, authenticated;
