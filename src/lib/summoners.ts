@@ -1,7 +1,13 @@
 import 'server-only'
 import { DatabaseError, getDb } from '@/lib/db'
 import { after } from 'next/server'
-import { type IngestResult, findPendingTimelines, ingestRecentMatches, ingestTimelines } from '@/lib/matches'
+import {
+  type IngestResult,
+  addToPlayerDirectory,
+  findPendingTimelines,
+  ingestRecentMatches,
+  ingestTimelines,
+} from '@/lib/matches'
 import { reserveBudget, requireBudget, riotCosts } from '@/lib/rateLimit'
 import {
   getAccountByPuuid,
@@ -103,7 +109,20 @@ async function pullSummoner(region: Region, puuid: string, riotId: RiotId): Prom
     .single()
 
   if (error) throw new DatabaseError('save a summoner', error)
-  return data as SummonerRecord
+
+  const saved = data as SummonerRecord
+  await addToPlayerDirectory([
+    {
+      puuid,
+      platform: region.platform,
+      game_name: saved.game_name,
+      tag_line: saved.tag_line,
+      profile_icon_id: saved.profile_icon_id,
+      has_profile: true,
+      last_seen: saved.refreshed_at,
+    },
+  ])
+  return saved
 }
 
 export async function findStoredSummoner(region: Region, riotId: RiotId): Promise<SummonerRecord | null> {

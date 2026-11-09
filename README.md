@@ -9,6 +9,7 @@ League of Legends match history and player analytics. Search any player by Riot 
 ## Features
 
 - **Search by Riot ID** (`Name#TAG`) across every League region, with shareable player URLs like `/summoner/na/Name-TAG`
+- **Search suggestions** after 3 letters, from every player the site has seen (Riot's API has no name search, so the list grows as more matches are stored)
 - **Rank** for Ranked Solo/Duo and Ranked Flex
 - **Match history** with champion, spells, runes, KDA, CS, kill participation, items and the full lobby, filterable by queue
 - **Match details** for all ten players: damage, gold, CS, vision, items, objectives and bans

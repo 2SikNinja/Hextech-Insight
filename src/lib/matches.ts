@@ -25,10 +25,40 @@ async function storeMatch(match: RiotMatch): Promise<void> {
     .upsert(toMatchRow(match), { onConflict: 'match_id', ignoreDuplicates: true })
   if (matchError) throw new DatabaseError('save a match', matchError)
 
+  const participantRows = toParticipantRows(match)
   const { error: participantError } = await db
     .from('match_participants')
-    .upsert(toParticipantRows(match), { onConflict: 'match_id,puuid', ignoreDuplicates: true })
+    .upsert(participantRows, { onConflict: 'match_id,puuid', ignoreDuplicates: true })
   if (participantError) throw new DatabaseError('save match participants', participantError)
+
+  // Every player in the match becomes searchable in the search bar suggestions.
+  const platform = toMatchRow(match).platform
+  await addToPlayerDirectory(
+    participantRows.map((row) => ({
+      puuid: row.puuid,
+      platform,
+      game_name: row.riot_id_name,
+      tag_line: row.riot_id_tag,
+      last_seen: row.game_start,
+    })),
+  )
+}
+
+export interface DirectoryEntry {
+  puuid: string
+  platform: string
+  game_name: string | null
+  tag_line: string | null
+  last_seen: string
+  profile_icon_id?: number
+  has_profile?: boolean
+}
+
+/** Adds players to the search suggestions. Never fails the caller. */
+export async function addToPlayerDirectory(entries: DirectoryEntry[]): Promise<void> {
+  if (entries.length === 0) return
+  const { error } = await getDb().rpc('upsert_player_directory', { p_rows: entries })
+  if (error) console.warn('Could not update the player directory', error.message)
 }
 
 /**
