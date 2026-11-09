@@ -67,6 +67,48 @@ function rankColumns(prefix: 'solo' | 'flex', entry: RiotLeagueEntry | undefined
   }
 }
 
+/** Adds a point to the player's LP history for each ranked queue, if it changed. */
+async function recordRankSnapshots(puuid: string, entries: Record<'solo' | 'flex', RiotLeagueEntry | undefined>) {
+  const db = getDb()
+  await Promise.all(
+    (Object.entries(entries) as ['solo' | 'flex', RiotLeagueEntry | undefined][])
+      .filter(([, entry]) => entry)
+      .map(async ([queue, entry]) => {
+        const { error } = await db.rpc('record_rank_snapshot', {
+          p_puuid: puuid,
+          p_queue: queue,
+          p_tier: entry!.tier,
+          p_division: entry!.rank,
+          p_lp: entry!.leaguePoints,
+          p_wins: entry!.wins,
+          p_losses: entry!.losses,
+        })
+        if (error) console.warn('Could not record LP history', error.message)
+      }),
+  )
+}
+
+export interface RankSnapshot {
+  queue: 'solo' | 'flex'
+  tier: string
+  division: string | null
+  lp: number
+  wins: number
+  losses: number
+  recorded_at: string
+}
+
+export async function getRankHistory(puuid: string): Promise<RankSnapshot[]> {
+  const { data, error } = await getDb()
+    .from('rank_history')
+    .select('queue, tier, division, lp, wins, losses, recorded_at')
+    .eq('puuid', puuid)
+    .order('recorded_at', { ascending: true })
+    .limit(500)
+  if (error) throw new DatabaseError('load LP history', error)
+  return (data ?? []) as RankSnapshot[]
+}
+
 /** Fetches profile and rank from Riot and saves them. Returns the saved row. */
 async function pullSummoner(region: Region, puuid: string, riotId: RiotId): Promise<SummonerRecord> {
   const [summoner, leagueEntries, masteries] = await Promise.all([
@@ -111,6 +153,7 @@ async function pullSummoner(region: Region, puuid: string, riotId: RiotId): Prom
   if (error) throw new DatabaseError('save a summoner', error)
 
   const saved = data as SummonerRecord
+  await recordRankSnapshots(puuid, { solo: soloEntry, flex: flexEntry })
   await addToPlayerDirectory([
     {
       puuid,
