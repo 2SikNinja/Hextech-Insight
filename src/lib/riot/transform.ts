@@ -1,4 +1,4 @@
-import type { RiotMatch, RiotParticipant } from './schemas'
+import type { RiotMatch, RiotParticipant, RiotTimeline } from './schemas'
 
 // Converts a Riot match into the rows we store in Supabase. Pure functions with
 // no I/O, so they are covered by unit tests.
@@ -156,6 +156,46 @@ export function toParticipantRows(match: RiotMatch): ParticipantRow[] {
       triple_kills: participant.tripleKills,
       quadra_kills: participant.quadraKills,
       penta_kills: participant.pentaKills,
+    }
+  })
+}
+
+// ---------- Timeline: early-game snapshots ----------
+
+export interface TimelineRow {
+  match_id: string
+  puuid: string
+  gold_10: number | null
+  cs_10: number | null
+  xp_10: number | null
+  gold_15: number | null
+  cs_15: number | null
+  xp_15: number | null
+}
+
+/** The first frame at or after the given minute, or null if the game ended earlier. */
+function frameAtMinute(timeline: RiotTimeline, minute: number) {
+  const target = minute * 60_000
+  return timeline.info.frames.find((frame) => frame.timestamp >= target) ?? null
+}
+
+/** Gold, CS and XP for every player at 10 and 15 minutes. */
+export function toTimelineRows(timeline: RiotTimeline): TimelineRow[] {
+  const at10 = frameAtMinute(timeline, 10)
+  const at15 = frameAtMinute(timeline, 15)
+
+  return timeline.info.participants.map(({ participantId, puuid }) => {
+    const frame10 = at10?.participantFrames[String(participantId)]
+    const frame15 = at15?.participantFrames[String(participantId)]
+    return {
+      match_id: timeline.metadata.matchId,
+      puuid,
+      gold_10: frame10?.totalGold ?? null,
+      cs_10: frame10 ? frame10.minionsKilled + frame10.jungleMinionsKilled : null,
+      xp_10: frame10?.xp ?? null,
+      gold_15: frame15?.totalGold ?? null,
+      cs_15: frame15 ? frame15.minionsKilled + frame15.jungleMinionsKilled : null,
+      xp_15: frame15?.xp ?? null,
     }
   })
 }

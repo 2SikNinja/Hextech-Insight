@@ -117,3 +117,65 @@ export const matchSchema = z.object({
   }),
 })
 export type RiotMatch = z.infer<typeof matchSchema>
+
+// ---------- Match-V5 timeline (only the fields used for early-game stats) ----------
+
+const participantFrameSchema = z.object({
+  totalGold: z.number().int(),
+  xp: z.number().int(),
+  minionsKilled: z.number().int(),
+  jungleMinionsKilled: z.number().int(),
+})
+
+export const timelineSchema = z.object({
+  metadata: z.object({ matchId: z.string() }),
+  info: z.object({
+    frameInterval: z.number().int().default(60_000),
+    frames: z.array(
+      z.object({
+        timestamp: z.number(),
+        participantFrames: z.record(z.string(), participantFrameSchema),
+      }),
+    ),
+    participants: z.array(z.object({ participantId: z.number().int(), puuid: z.string() })),
+  }),
+})
+export type RiotTimeline = z.infer<typeof timelineSchema>
+
+// ---------- Champion-Mastery-V4 ----------
+
+export const masteriesSchema = z.array(
+  z.object({
+    championId: z.number().int(),
+    championLevel: z.number().int(),
+    championPoints: z.number().int(),
+    lastPlayTime: z.number().optional(),
+  }),
+)
+export type RiotMastery = z.infer<typeof masteriesSchema>[number]
+
+// ---------- Spectator-V5 (live game) ----------
+
+export const activeGameSchema = z.object({
+  gameId: z.number(),
+  gameMode: z.string(),
+  gameQueueConfigId: z.number().int().optional(),
+  gameStartTime: z.number(),
+  gameLength: z.number(),
+  bannedChampions: z.array(z.object({ championId: z.number().int(), teamId: z.number().int() })).default([]),
+  participants: z.array(
+    z.object({
+      puuid: z.string().nullish(),
+      riotId: z.string().nullish(),
+      teamId: z.number().int(),
+      championId: z.number().int(),
+      spell1Id: z.number().int(),
+      spell2Id: z.number().int(),
+      bot: z.boolean().default(false),
+      perks: z
+        .object({ perkIds: z.array(z.number().int()).default([]), perkSubStyle: z.number().int().optional() })
+        .optional(),
+    }),
+  ),
+})
+export type RiotActiveGame = z.infer<typeof activeGameSchema>

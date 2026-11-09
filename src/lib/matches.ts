@@ -1,9 +1,9 @@
 import 'server-only'
 import { DatabaseError, getDb } from '@/lib/db'
-import { getMatch, getMatchIds, isRiotError } from '@/lib/riot/client'
+import { getMatch, getMatchIds, getMatchTimeline, isRiotError } from '@/lib/riot/client'
 import { type Region, getRegionFromMatchId } from '@/lib/riot/regions'
 import { type RiotMatch, matchSchema } from '@/lib/riot/schemas'
-import { type ParticipantRow, toMatchRow, toParticipantRows } from '@/lib/riot/transform'
+import { type ParticipantRow, toMatchRow, toParticipantRows, toTimelineRows } from '@/lib/riot/transform'
 
 // Cache-first match storage. A finished match never changes, so each one is
 // fetched from Riot exactly once and then served from Supabase forever.
@@ -32,13 +32,17 @@ async function storeMatch(match: RiotMatch): Promise<void> {
 }
 
 /**
- * Pulls the player's most recent match IDs and downloads only the ones we have
- * not stored yet. Stops early, keeping what it saved, if Riot rate limits us.
+ * Pulls a page of the player's match IDs and downloads only the ones we have not
+ * stored yet. Stops early, keeping what it saved, if Riot rate limits us.
  */
-export async function ingestRecentMatches(region: Region, puuid: string): Promise<IngestResult> {
+async function ingestMatchPage(
+  region: Region,
+  puuid: string,
+  page: { start: number; count: number },
+): Promise<IngestResult> {
   let matchIds: string[]
   try {
-    matchIds = await getMatchIds(region.matchRoute, puuid, { count: matchesPerIngest })
+    matchIds = await getMatchIds(region.matchRoute, puuid, page)
   } catch (error) {
     if (isRiotError(error, 'rate_limited')) return { added: 0, rateLimited: true }
     throw error
@@ -80,6 +84,109 @@ export async function ingestRecentMatches(region: Region, puuid: string): Promis
 
   await Promise.all(Array.from({ length: Math.min(ingestConcurrency, queue.length) }, worker))
   return { added, rateLimited }
+}
+
+/** Downloads the player's most recent games that are not stored yet. */
+export function ingestRecentMatches(region: Region, puuid: string): Promise<IngestResult> {
+  return ingestMatchPage(region, puuid, { start: 0, count: matchesPerIngest })
+}
+
+/** Counts how many of the player's games are stored. */
+export async function countStoredGames(puuid: string): Promise<number> {
+  const { count, error } = await getDb()
+    .from('match_participants')
+    .select('match_id', { count: 'exact', head: true })
+    .eq('puuid', puuid)
+  if (error) throw new DatabaseError('count stored games', error)
+  return count ?? 0
+}
+
+export const maxStoredGamesPerPlayer = 200
+
+/**
+ * Downloads the next page of older games. Riot lists matches newest first, so
+ * the page starts after the games we already have.
+ */
+export async function ingestOlderMatches(region: Region, puuid: string): Promise<IngestResult & { stored: number }> {
+  const stored = await countStoredGames(puuid)
+  if (stored >= maxStoredGamesPerPlayer) return { added: 0, rateLimited: false, stored }
+  const result = await ingestMatchPage(region, puuid, { start: stored, count: matchesPerIngest })
+  return { ...result, stored: stored + result.added }
+}
+
+// ---------- Early-game timelines ----------
+
+// Timelines are only useful for laning stats on Summoner's Rift.
+const laningQueueIds = new Set([400, 420, 430, 440, 480, 490, 700])
+const timelineConcurrency = 2
+
+/** Matches among the player's recent games that still need a timeline. */
+export async function findPendingTimelines(puuid: string, limit: number): Promise<{ match_id: string; queue_id: number }[]> {
+  const db = getDb()
+  const { data: recent, error } = await db
+    .from('match_participants')
+    .select('match_id')
+    .eq('puuid', puuid)
+    .order('game_start', { ascending: false })
+    .limit(60)
+  if (error) throw new DatabaseError('load recent matches', error)
+  if (!recent || recent.length === 0) return []
+
+  const { data: pending, error: pendingError } = await db
+    .from('matches')
+    .select('match_id, queue_id')
+    .in('match_id', recent.map((row) => row.match_id))
+    .eq('timeline_status', 'pending')
+    .order('game_start', { ascending: false })
+    .limit(limit)
+  if (pendingError) throw new DatabaseError('find pending timelines', pendingError)
+  return pending ?? []
+}
+
+async function setTimelineStatus(matchIds: string[], status: 'done' | 'unavailable') {
+  if (matchIds.length === 0) return
+  const { error } = await getDb().from('matches').update({ timeline_status: status }).in('match_id', matchIds)
+  if (error) throw new DatabaseError('update timeline status', error)
+}
+
+/**
+ * Downloads early-game snapshots for matches that do not have them yet. Runs in
+ * the background after a page is sent, so it never slows a page down.
+ */
+export async function ingestTimelines(
+  region: Region,
+  pending: { match_id: string; queue_id: number }[],
+): Promise<number> {
+  const skipped = pending.filter((match) => !laningQueueIds.has(match.queue_id)).map((match) => match.match_id)
+  await setTimelineStatus(skipped, 'unavailable')
+
+  const queue = pending.filter((match) => laningQueueIds.has(match.queue_id)).map((match) => match.match_id)
+  let stored = 0
+  let rateLimited = false
+
+  async function worker() {
+    while (queue.length > 0 && !rateLimited) {
+      const matchId = queue.shift()
+      if (!matchId) return
+      try {
+        const timeline = await getMatchTimeline(region.matchRoute, matchId)
+        const { error } = await getDb()
+          .from('participant_timeline')
+          .upsert(toTimelineRows(timeline), { onConflict: 'match_id,puuid', ignoreDuplicates: true })
+        if (error) throw new DatabaseError('save timeline stats', error)
+        await setTimelineStatus([matchId], 'done')
+        stored += 1
+      } catch (error) {
+        if (isRiotError(error, 'rate_limited')) rateLimited = true
+        else if (isRiotError(error, 'not_found') || isRiotError(error, 'invalid_response')) {
+          await setTimelineStatus([matchId], 'unavailable')
+        } else throw error
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(timelineConcurrency, queue.length) }, worker))
+  return stored
 }
 
 // ---------- Reading match history ----------

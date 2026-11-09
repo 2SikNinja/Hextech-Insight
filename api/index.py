@@ -22,6 +22,11 @@ from fastapi import FastAPI, HTTPException, Path as PathParam, Query, Response
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+try:  # Imported as a package locally (uvicorn api.index:app) and in tests
+    from api._insights import PlayerInsights, compute_insights
+except ImportError:  # Loaded directly from the api/ directory on Vercel
+    from _insights import PlayerInsights, compute_insights  # type: ignore[no-redef]
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -295,29 +300,89 @@ def supabase_headers(secret_key: str) -> dict[str, str]:
     return headers
 
 
-def fetch_participant_rows(puuid: str, queue_ids: list[int], limit: int) -> list[dict[str, Any]]:
+def supabase_get(table: str, params: dict[str, str]) -> list[dict[str, Any]]:
     supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     secret_key = os.environ.get("SUPABASE_SECRET_KEY", "")
     if not supabase_url or not secret_key:
         raise ConfigurationError("SUPABASE_URL and SUPABASE_SECRET_KEY must be set")
 
-    params: dict[str, str] = {
-        "select": PARTICIPANT_COLUMNS,
-        "puuid": f"eq.{puuid}",
-        "order": "game_start.desc",
-        "limit": str(limit),
-    }
-    if queue_ids:
-        params["queue_id"] = f"in.({','.join(str(queue_id) for queue_id in queue_ids)})"
-
     response = httpx.get(
-        f"{supabase_url}/rest/v1/match_participants",
+        f"{supabase_url}/rest/v1/{table}",
         params=params,
         headers=supabase_headers(secret_key),
         timeout=10.0,
     )
     response.raise_for_status()
     return response.json()
+
+
+def queue_filter(queue_ids: list[int]) -> dict[str, str]:
+    return {"queue_id": f"in.({','.join(str(queue_id) for queue_id in queue_ids)})"} if queue_ids else {}
+
+
+def fetch_participant_rows(puuid: str, queue_ids: list[int], limit: int) -> list[dict[str, Any]]:
+    return supabase_get(
+        "match_participants",
+        {
+            "select": PARTICIPANT_COLUMNS,
+            "puuid": f"eq.{puuid}",
+            "order": "game_start.desc",
+            "limit": str(limit),
+            **queue_filter(queue_ids),
+        },
+    )
+
+
+INSIGHT_GAME_LIMIT = 60  # 60 games x up to 16 players stays under Supabase's 1,000-row page
+
+INSIGHT_PLAYER_COLUMNS = ",".join(
+    [
+        "match_id",
+        "game_start",
+        "duration_secs",
+        "queue_id",
+        "team_id",
+        "team_position",
+        "champion_id",
+        "champion_name",
+        "win",
+        "remake",
+        "kills",
+        "deaths",
+        "assists",
+        "cs",
+        "gold_earned",
+        "damage_to_champs",
+        "vision_score",
+        "matches(game_version)",
+    ]
+)
+LOBBY_COLUMNS = "match_id,puuid,team_id,team_position,champion_id,champion_name,riot_id_name,riot_id_tag"
+TIMELINE_COLUMNS = "match_id,puuid,gold_10,cs_10,xp_10,gold_15,cs_15,xp_15"
+
+
+def fetch_insight_rows(
+    puuid: str, queue_ids: list[int]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    player_rows = supabase_get(
+        "match_participants",
+        {
+            "select": INSIGHT_PLAYER_COLUMNS,
+            "puuid": f"eq.{puuid}",
+            "order": "game_start.desc",
+            "limit": str(INSIGHT_GAME_LIMIT),
+            **queue_filter(queue_ids),
+        },
+    )
+    if not player_rows:
+        return [], [], []
+
+    match_filter = f"in.({','.join(row['match_id'] for row in player_rows)})"
+    lobby_rows = supabase_get("match_participants", {"select": LOBBY_COLUMNS, "match_id": match_filter, "limit": "1000"})
+    timeline_rows = supabase_get(
+        "participant_timeline", {"select": TIMELINE_COLUMNS, "match_id": match_filter, "limit": "1000"}
+    )
+    return player_rows, lobby_rows, timeline_rows
 
 
 # ---------------------------------------------------------------------------
@@ -355,3 +420,22 @@ def player_stats(
     # Let Vercel's CDN reuse the answer briefly; stats only change when new matches arrive.
     response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=300"
     return compute_player_stats(puuid, rows)
+
+
+@app.get("/api/py/insights/{puuid}", response_model=PlayerInsights)
+def player_insights(
+    puuid: PuuidParam,
+    response: Response,
+    queue: Annotated[list[int], Query(max_length=10)] = [],  # noqa: B006 (FastAPI copies defaults)
+    tz: Annotated[str | None, Query(max_length=64, pattern=r"^[A-Za-z0-9_+\-/]+$")] = None,
+) -> PlayerInsights:
+    """Trends, early-game lane stats, matchups, patches, schedule and teammates."""
+    try:
+        player_rows, lobby_rows, timeline_rows = fetch_insight_rows(puuid, queue)
+    except ConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except httpx.HTTPError as error:
+        raise HTTPException(status_code=502, detail="Could not load matches from the database") from error
+
+    response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=300"
+    return compute_insights(puuid, player_rows, lobby_rows, timeline_rows, tz)

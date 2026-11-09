@@ -9,10 +9,13 @@ import {
 } from './regions'
 import {
   accountSchema,
+  activeGameSchema,
   leagueEntriesSchema,
+  masteriesSchema,
   matchIdsSchema,
   matchSchema,
   summonerSchema,
+  timelineSchema,
 } from './schemas'
 
 // Thin, typed wrapper around the Riot API. Runs on the server only, so the API
@@ -152,4 +155,32 @@ export function getMatchIds(route: RegionalRoute, puuid: string, options: { coun
 
 export function getMatch(route: RegionalRoute, matchId: string) {
   return riotGet(`${regionalHost(route)}/lol/match/v5/matches/${encode(matchId)}`, matchSchema)
+}
+
+export function getMatchTimeline(route: RegionalRoute, matchId: string) {
+  return riotGet(`${regionalHost(route)}/lol/match/v5/matches/${encode(matchId)}/timeline`, timelineSchema)
+}
+
+// ---------- Champion-Mastery-V4 ----------
+
+export function getTopMasteries(platform: Platform, puuid: string, count = 5) {
+  return riotGet(
+    `${platformHost(platform)}/lol/champion-mastery/v4/champion-masteries/by-puuid/${encode(puuid)}/top?count=${count}`,
+    masteriesSchema,
+  )
+}
+
+// ---------- Spectator-V5 ----------
+
+/** The player's current game, or null when they are not in one. */
+export async function getActiveGame(platform: Platform, puuid: string) {
+  try {
+    return await riotGet(
+      `${platformHost(platform)}/lol/spectator/v5/active-games/by-summoner/${encode(puuid)}`,
+      activeGameSchema,
+    )
+  } catch (error) {
+    if (isRiotError(error, 'not_found')) return null
+    throw error
+  }
 }

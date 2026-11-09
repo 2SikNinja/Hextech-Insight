@@ -1,11 +1,14 @@
 import 'server-only'
 import { DatabaseError, getDb } from '@/lib/db'
-import { type IngestResult, ingestRecentMatches } from '@/lib/matches'
+import { after } from 'next/server'
+import { type IngestResult, findPendingTimelines, ingestRecentMatches, ingestTimelines } from '@/lib/matches'
+import { reserveBudget, requireBudget, riotCosts } from '@/lib/rateLimit'
 import {
   getAccountByPuuid,
   getAccountByRiotId,
   getLeagueEntriesByPuuid,
   getSummonerByPuuid,
+  getTopMasteries,
 } from '@/lib/riot/client'
 import { type Region, getRegionByPlatform } from '@/lib/riot/regions'
 import type { RiotId } from '@/lib/riot/riotId'
@@ -16,6 +19,12 @@ import type { RiotLeagueEntry } from '@/lib/riot/schemas'
 // "Update", which is rate limited per player by refreshCooldownSeconds.
 
 export const refreshCooldownSeconds = 120
+
+export interface MasteryEntry {
+  championId: number
+  level: number
+  points: number
+}
 
 export interface SummonerRecord {
   puuid: string
@@ -34,12 +43,13 @@ export interface SummonerRecord {
   flex_lp: number | null
   flex_wins: number | null
   flex_losses: number | null
+  top_mastery: MasteryEntry[]
   refreshed_at: string
   created_at: string
 }
 
 const summonerColumns =
-  'puuid, platform, game_name, tag_line, profile_icon_id, summoner_level, solo_tier, solo_division, solo_lp, solo_wins, solo_losses, flex_tier, flex_division, flex_lp, flex_wins, flex_losses, refreshed_at, created_at'
+  'puuid, platform, game_name, tag_line, profile_icon_id, summoner_level, solo_tier, solo_division, solo_lp, solo_wins, solo_losses, flex_tier, flex_division, flex_lp, flex_wins, flex_losses, top_mastery, refreshed_at, created_at'
 
 function rankColumns(prefix: 'solo' | 'flex', entry: RiotLeagueEntry | undefined) {
   return {
@@ -53,9 +63,14 @@ function rankColumns(prefix: 'solo' | 'flex', entry: RiotLeagueEntry | undefined
 
 /** Fetches profile and rank from Riot and saves them. Returns the saved row. */
 async function pullSummoner(region: Region, puuid: string, riotId: RiotId): Promise<SummonerRecord> {
-  const [summoner, leagueEntries] = await Promise.all([
+  const [summoner, leagueEntries, masteries] = await Promise.all([
     getSummonerByPuuid(region.platform, puuid),
     getLeagueEntriesByPuuid(region.platform, puuid),
+    // Mastery is a nice extra; never fail the profile because of it.
+    getTopMasteries(region.platform, puuid).catch((error) => {
+      console.warn('Could not load champion mastery', error)
+      return null
+    }),
   ])
 
   const soloEntry = leagueEntries.find((entry) => entry.queueType === 'RANKED_SOLO_5x5')
@@ -73,6 +88,13 @@ async function pullSummoner(region: Region, puuid: string, riotId: RiotId): Prom
         summoner_level: summoner.summonerLevel,
         ...rankColumns('solo', soloEntry),
         ...rankColumns('flex', flexEntry),
+        ...(masteries && {
+          top_mastery: masteries.map((mastery) => ({
+            championId: mastery.championId,
+            level: mastery.championLevel,
+            points: mastery.championPoints,
+          })),
+        }),
         refreshed_at: new Date().toISOString(),
       },
       { onConflict: 'puuid' },
@@ -114,6 +136,9 @@ export async function lookupSummoner(region: Region, riotId: RiotId): Promise<Lo
   const stored = await findStoredSummoner(region, riotId)
   if (stored) return { summoner: stored, ingest: null }
 
+  // A first-time lookup costs about 25 Riot requests, so it is rate limited.
+  await requireBudget('lookup', riotCosts.lookup)
+
   const account = await getAccountByRiotId(region.accountRoute, riotId.gameName, riotId.tagLine)
   const canonicalRiotId = {
     gameName: account.gameName ?? riotId.gameName,
@@ -148,6 +173,8 @@ export async function refreshSummoner(puuid: string): Promise<RefreshOutcome> {
     return { status: 'cooldown', secondsLeft: Math.ceil(refreshCooldownSeconds - secondsSinceRefresh) }
   }
 
+  await requireBudget('refresh', riotCosts.refresh)
+
   // Riot IDs can change, so refresh the name too.
   const account = await getAccountByPuuid(region.accountRoute, puuid)
   const summoner = await pullSummoner(region, puuid, {
@@ -156,4 +183,24 @@ export async function refreshSummoner(puuid: string): Promise<RefreshOutcome> {
   })
   const ingest = await ingestRecentMatches(region, puuid)
   return { status: 'updated', summoner, ingest }
+}
+
+const timelinesPerBackfill = 10
+
+/**
+ * After the page is sent, downloads early-game timelines for up to 10 of the
+ * player's recent matches that do not have them yet, if the Riot budget allows.
+ */
+export function scheduleTimelineBackfill(region: Region, puuid: string): void {
+  after(async () => {
+    try {
+      const pending = await findPendingTimelines(puuid, timelinesPerBackfill)
+      if (pending.length === 0) return
+      const budget = await reserveBudget('timelines', pending.length)
+      if (!budget.allowed) return
+      await ingestTimelines(region, pending)
+    } catch (error) {
+      console.error('Timeline backfill failed', error)
+    }
+  })
 }

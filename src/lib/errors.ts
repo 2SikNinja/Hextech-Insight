@@ -1,6 +1,7 @@
 import 'server-only'
 import { DatabaseError } from '@/lib/db'
 import { ConfigError } from '@/lib/env'
+import { BudgetExceededError, describeBudgetError } from '@/lib/rateLimit'
 import { RiotApiError } from '@/lib/riot/client'
 
 export interface FriendlyError {
@@ -27,6 +28,10 @@ export function describeError(error: unknown, context: { notFound: string }): Fr
       default:
         return { title: "Riot's API is unavailable", message: 'Riot did not respond. Try again in a minute.' }
     }
+  }
+
+  if (error instanceof BudgetExceededError) {
+    return { title: 'Slow down a little', message: describeBudgetError(error) }
   }
 
   if (error instanceof ConfigError) {
