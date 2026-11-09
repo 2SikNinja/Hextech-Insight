@@ -47,6 +47,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
               <SearchForm variant="compact" />
             </div>
             <nav aria-label="Main" className="ml-auto flex gap-5 text-sm text-muted">
+              <Link href="/compare" className="hover:text-ink">
+                Compare
+              </Link>
               <Link href="/favorites" className="hover:text-ink">
                 Favorites
               </Link>

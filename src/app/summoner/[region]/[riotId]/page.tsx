@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { GameImage } from '@/components/GameImage'
+import { InsightsPanel } from '@/components/InsightsPanel'
+import { LiveGame } from '@/components/LiveGame'
+import { LoadMoreButton } from '@/components/LoadMoreButton'
+import { MasteryPanel } from '@/components/MasteryPanel'
 import { MatchList } from '@/components/MatchList'
 import { PageMessage } from '@/components/PageMessage'
 import { RankPanel } from '@/components/RankPanel'
@@ -15,8 +19,8 @@ import { formatTier, formatTimeAgo } from '@/lib/format'
 import { getMatchHistory } from '@/lib/matches'
 import { getQueueFilter, queueFilters } from '@/lib/riot/queues'
 import { type Region, getRegionBySlug } from '@/lib/riot/regions'
-import { formatRiotId, parseRiotIdSlug, summonerPath } from '@/lib/riot/riotId'
-import { type LookupResult, lookupSummoner } from '@/lib/summoners'
+import { formatRiotId, parseRiotIdSlug, summonerPath, toRiotIdSlug } from '@/lib/riot/riotId'
+import { type LookupResult, lookupSummoner, scheduleTimelineBackfill } from '@/lib/summoners'
 
 type SummonerPageProps = PageProps<'/summoner/[region]/[riotId]'>
 
@@ -48,6 +52,8 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
   if (!region || !riotId) notFound()
 
   const queueFilter = getQueueFilter(typeof query.queue === 'string' ? query.queue : undefined)
+  const view: View = query.view === 'insights' ? 'insights' : 'matches'
+  const shown = clampShown(typeof query.show === 'string' ? Number(query.show) : pageSize)
 
   let lookup: LookupResult
   try {
@@ -69,14 +75,19 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
   }
 
   const { summoner } = lookup
+  // Fetch early-game timelines in the background for the Insights tab.
+  scheduleTimelineBackfill(region, summoner.puuid)
+
   const [gameData, history] = await Promise.all([
     getGameData(),
-    getMatchHistory(summoner.puuid, { queueIds: queueFilter.queueIds }),
+    view === 'matches' ? getMatchHistory(summoner.puuid, { queueIds: queueFilter.queueIds, limit: shown }) : Promise.resolve([]),
   ])
 
   const canonicalRiotId = { gameName: summoner.game_name, tagLine: summoner.tag_line }
   const basePath = summonerPath(region.slug, canonicalRiotId)
+  const hrefFor = (changes: Partial<PageState>) => buildHref(basePath, { queue: queueFilter.slug, view, show: shown, ...changes })
   const iconUrl = profileIconUrl(gameData, summoner.profile_icon_id)
+  const lookups = championLookups(gameData)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -106,6 +117,12 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
               iconUrl={iconUrl}
               rankLabel={formatTier(summoner.solo_tier, summoner.solo_division)}
             />
+            <Link
+              href={`/compare?a=${region.slug}/${toRiotIdSlug(canonicalRiotId)}`}
+              className="inline-flex items-center border border-line-strong px-3 py-1.5 text-sm font-semibold text-text transition-colors hover:border-accent hover:text-accent"
+            >
+              Compare
+            </Link>
             <RefreshButton puuid={summoner.puuid} />
           </div>
         </div>
@@ -125,20 +142,44 @@ async function SummonerView({ params, searchParams }: SummonerPageProps) {
             puuid={summoner.puuid}
             queueIds={queueFilter.queueIds}
             queueLabel={queueFilter.label}
-            {...championLookups(gameData)}
+            {...lookups}
           />
+          <MasteryPanel mastery={summoner.top_mastery ?? []} gameData={gameData} />
+          <LiveGame puuid={summoner.puuid} />
         </aside>
 
-        <section aria-labelledby="history-heading" className="min-w-0">
+        <section aria-label="Games and insights" className="min-w-0">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="history-heading" className="text-lg font-semibold text-ink">
-              Recent games
-            </h2>
-            <QueueTabs basePath={basePath} activeSlug={queueFilter.slug} />
+            <ViewTabs hrefFor={hrefFor} active={view} />
+            <QueueTabs hrefFor={hrefFor} activeSlug={queueFilter.slug} />
           </div>
 
-          {history.length > 0 ? (
-            <MatchList entries={history} gameData={gameData} regionSlug={region.slug} />
+          {view === 'insights' ? (
+            <InsightsPanel
+              key={`${summoner.refreshed_at}-${queueFilter.slug}`}
+              puuid={summoner.puuid}
+              queueIds={queueFilter.queueIds}
+              queueLabel={queueFilter.label}
+              regionSlug={region.slug}
+              {...lookups}
+            />
+          ) : history.length > 0 ? (
+            <>
+              <MatchList entries={history} gameData={gameData} regionSlug={region.slug} />
+              {history.length >= shown && shown < maxShown ? (
+                <div className="mt-4 flex justify-center">
+                  <Link
+                    href={hrefFor({ show: shown + pageSize })}
+                    scroll={false}
+                    className="border border-line-strong px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-accent hover:text-accent"
+                  >
+                    Show more games
+                  </Link>
+                </div>
+              ) : (
+                shown < maxShown && <LoadMoreButton puuid={summoner.puuid} shown={history.length} />
+              )}
+            </>
           ) : (
             <EmptyHistory region={region} filterLabel={queueFilter.label} isFiltered={queueFilter.slug !== 'all'} />
           )}
@@ -159,7 +200,63 @@ function championLookups(gameData: GameData) {
   return { championIcons, championNames }
 }
 
-function QueueTabs({ basePath, activeSlug }: { basePath: string; activeSlug: string }) {
+type View = 'matches' | 'insights'
+
+interface PageState {
+  queue: string
+  view: View
+  show: number
+}
+
+const pageSize = 20
+const maxShown = 200
+
+function clampShown(value: number): number {
+  if (!Number.isFinite(value)) return pageSize
+  return Math.min(maxShown, Math.max(pageSize, Math.round(value / pageSize) * pageSize))
+}
+
+/** Builds a summoner URL, leaving out defaults so links stay short. */
+function buildHref(basePath: string, state: PageState): string {
+  const params = new URLSearchParams()
+  if (state.view !== 'matches') params.set('view', state.view)
+  if (state.queue !== 'all') params.set('queue', state.queue)
+  if (state.view === 'matches' && state.show !== pageSize) params.set('show', String(state.show))
+  const query = params.toString()
+  return query ? `${basePath}?${query}` : basePath
+}
+
+function tabClass(isActive: boolean): string {
+  return `border px-3 py-1 transition-colors ${
+    isActive ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:border-line-strong hover:text-text'
+  }`
+}
+
+function ViewTabs({ hrefFor, active }: { hrefFor: (changes: Partial<PageState>) => string; active: View }) {
+  const views: { view: View; label: string }[] = [
+    { view: 'matches', label: 'Matches' },
+    { view: 'insights', label: 'Insights' },
+  ]
+  return (
+    <nav aria-label="Section" className="flex gap-5">
+      {views.map(({ view, label }) => (
+        <Link
+          key={view}
+          href={hrefFor({ view, show: pageSize })}
+          aria-current={view === active ? 'page' : undefined}
+          scroll={false}
+          className={`border-b-2 pb-1 text-lg font-semibold transition-colors ${
+            view === active ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-text'
+          }`}
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+function QueueTabs({ hrefFor, activeSlug }: { hrefFor: (changes: Partial<PageState>) => string; activeSlug: string }) {
   return (
     <nav aria-label="Filter by queue" className="flex flex-wrap gap-1 text-sm">
       {queueFilters.map((filter) => {
@@ -167,12 +264,10 @@ function QueueTabs({ basePath, activeSlug }: { basePath: string; activeSlug: str
         return (
           <Link
             key={filter.slug}
-            href={filter.slug === 'all' ? basePath : `${basePath}?queue=${filter.slug}`}
+            href={hrefFor({ queue: filter.slug, show: pageSize })}
             aria-current={isActive ? 'page' : undefined}
             scroll={false}
-            className={`border px-3 py-1 transition-colors ${
-              isActive ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted hover:border-line-strong hover:text-text'
-            }`}
+            className={tabClass(isActive)}
           >
             {filter.label}
           </Link>
