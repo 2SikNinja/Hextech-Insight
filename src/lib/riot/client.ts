@@ -23,6 +23,7 @@ import {
 
 export type RiotErrorKind =
   | 'not_found'
+  | 'stale_id'
   | 'rate_limited'
   | 'unauthorized'
   | 'unavailable'
@@ -81,6 +82,16 @@ async function riotGet<Schema extends z.ZodType>(
 
   if (response.status === 404) {
     throw new RiotApiError('not_found', 404, 'Not found on the Riot API')
+  }
+
+  // Riot encrypts player IDs per API key. An ID saved while the site used a
+  // different key (for example a development key locally) cannot be decrypted.
+  if (response.status === 400) {
+    const body = await response.text().catch(() => '')
+    if (/decrypt/i.test(body)) {
+      throw new RiotApiError('stale_id', 400, 'Saved player ID belongs to a different Riot API key')
+    }
+    throw new RiotApiError('unavailable', 400, `Riot API rejected the request (400)`)
   }
 
   if (response.status === 401 || response.status === 403) {

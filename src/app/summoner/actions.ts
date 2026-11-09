@@ -42,6 +42,7 @@ async function loadStoredRegion(puuid: string): Promise<Region | null> {
 function friendlyActionError(error: unknown, fallback: string): string {
   if (error instanceof BudgetExceededError) return describeBudgetError(error)
   if (isRiotError(error, 'rate_limited')) return `Riot's API is busy. Try again in ${error.retryAfterSeconds ?? 60} seconds.`
+  if (isRiotError(error, 'stale_id')) return "This player was saved with a different Riot API key, so Riot can't match it."
   console.error(error)
   return fallback
 }

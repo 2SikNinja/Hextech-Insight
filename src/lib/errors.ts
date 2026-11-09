@@ -20,6 +20,11 @@ export function describeError(error: unknown, context: { notFound: string }): Fr
           title: "Riot's API is busy",
           message: `Too many lookups at once. Try again in ${error.retryAfterSeconds ?? 60} seconds.`,
         }
+      case 'stale_id':
+        return {
+          title: 'Saved data is out of date',
+          message: "This player was saved with a different Riot API key, so Riot can't match it. It needs to be cleared from the cache.",
+        }
       case 'unauthorized':
         return {
           title: 'Lookups are paused',

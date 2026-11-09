@@ -88,6 +88,8 @@ Requirements: Node.js 20.19 or newer (22 LTS recommended) and Python 3.10 or new
    npm run dev
    ```
 
+   Riot encrypts player IDs per API key, so if your local copy shares a database with the live site, use the same Riot key in both (or give local development its own Supabase project).
+
    Next.js runs on http://localhost:3000 and the Python service on port 8000. Requests to `/api/py/*` are forwarded to Python automatically.
 
 On macOS or Linux, if `python` is not found, change `python` to `python3` in the `dev:python` and `setup:python` scripts in `package.json`.
