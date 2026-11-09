@@ -6,14 +6,9 @@ Live at **[hextech.ppeternnguyen.com](https://hextech.ppeternnguyen.com)**
 
 League of Legends match history and player analytics. Search any player by Riot ID to see their rank, recent games with full builds, and a breakdown of how they play each champion and role.
 
-<!--
-Screenshots: save profile.png, match.png and insights.png in docs/screenshots/,
-then remove these comment markers to show the table.
-
 | Profile | Match breakdown | Insights |
 | --- | --- | --- |
 | ![Player profile](docs/screenshots/profile.png) | ![Match breakdown](docs/screenshots/match.png) | ![Insights tab](docs/screenshots/insights.png) |
--->
 
 ## Engineering highlights
 
