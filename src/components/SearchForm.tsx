@@ -61,7 +61,7 @@ export function SearchForm({ variant = 'hero' }: SearchFormProps) {
       <div
         className={
           isHero
-            ? 'flex items-stretch border-2 border-ink bg-surface transition-shadow focus-within:border-accent focus-within:shadow-[0_0_0_4px_var(--color-accent-soft)]'
+            ? 'flex items-stretch border-2 border-line-strong bg-surface transition-shadow focus-within:border-accent focus-within:shadow-[0_0_0_4px_var(--color-accent-soft)]'
             : 'flex items-stretch border border-line bg-surface focus-within:border-accent'
         }
       >

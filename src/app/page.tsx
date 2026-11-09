@@ -5,7 +5,7 @@ export default function HomePage() {
   return (
     <div>
       <section className="mx-auto max-w-3xl px-4 pb-20 pt-20 sm:pt-28">
-        <h1 className="font-display text-4xl leading-[1.05] text-ink sm:text-6xl">
+        <h1 className="font-display text-4xl leading-tight text-ink sm:text-6xl">
           Every match, read closely
         </h1>
         <p className="mt-5 max-w-xl text-lg text-muted">

@@ -1,18 +1,17 @@
 import { formatPercent, formatTier } from '@/lib/format'
 import type { SummonerRecord } from '@/lib/summoners'
 
-// Darkened so they stay readable on a light background.
 const tierColors: Record<string, string> = {
-  IRON: '#5e5450',
-  BRONZE: '#8a5530',
-  SILVER: '#5f7383',
-  GOLD: '#9a6f12',
-  PLATINUM: '#1c7f72',
-  EMERALD: '#147f49',
-  DIAMOND: '#3557c4',
-  MASTER: '#8237aa',
-  GRANDMASTER: '#b2301d',
-  CHALLENGER: '#8f6c0c',
+  IRON: '#a39591',
+  BRONZE: '#c08458',
+  SILVER: '#b4c2cc',
+  GOLD: '#e0b45a',
+  PLATINUM: '#4fc4b2',
+  EMERALD: '#3fcf80',
+  DIAMOND: '#7d9ef5',
+  MASTER: '#c27ae3',
+  GRANDMASTER: '#f06b55',
+  CHALLENGER: '#f4d27e',
 }
 
 interface RankRowProps {
@@ -26,7 +25,7 @@ interface RankRowProps {
 
 function RankRow({ queueName, tier, division, lp, wins, losses }: RankRowProps) {
   const games = (wins ?? 0) + (losses ?? 0)
-  const color = tier ? tierColors[tier] ?? '#5c677a' : undefined
+  const color = tier ? tierColors[tier] ?? '#9b93a9' : undefined
 
   return (
     <div className="flex items-center gap-4 py-4">

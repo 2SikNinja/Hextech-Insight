@@ -1,33 +1,33 @@
 @import 'tailwindcss';
 
-/* A light, neutral analytics look with one violet accent. It intentionally does
-   not borrow the League client's colors, fonts or ornaments (Riot's developer
-   policies ask third-party tools not to imitate official designs). Wins are
-   blue and losses red, a common stats convention. */
+/* A dark theme with its own palette: charcoal-plum surfaces and a violet accent.
+   It intentionally avoids the League client's navy, gold and teal (Riot's
+   developer policies ask third-party tools not to imitate official designs).
+   Wins are blue and losses red, a common stats convention. */
 @theme {
-  --color-canvas: #eef1f5;
-  --color-surface: #ffffff;
-  --color-surface-muted: #e3e7ee;
-  --color-line: #d5dbe4;
-  --color-line-strong: #aeb8c6;
-  --color-ink: #141a26;
-  --color-text: #2b3445;
-  --color-muted: #5c677a;
-  --color-accent: #6a4bd6;
-  --color-accent-soft: #b9a8ef;
-  --color-accent-strong: #4c31b0;
-  --color-win: #2563c9;
-  --color-win-wash: #e7effc;
-  --color-loss: #c8372d;
-  --color-loss-wash: #fcebea;
+  --color-canvas: #15131a;
+  --color-surface: #1e1b25;
+  --color-surface-muted: #2a2632;
+  --color-line: #322d3c;
+  --color-line-strong: #4a4357;
+  --color-ink: #f3eff8;
+  --color-text: #d6d0de;
+  --color-muted: #9b93a9;
+  --color-accent: #9b7cf5;
+  --color-accent-soft: #5d4aa6;
+  --color-accent-strong: #7556e0;
+  --color-win: #4c8dff;
+  --color-win-wash: #19203a;
+  --color-loss: #f0605d;
+  --color-loss-wash: #2d1a22;
 
-  --font-display: 'Archivo Variable', system-ui, sans-serif;
-  --font-sans: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Cinzel Variable', 'Cinzel', Georgia, serif;
+  --font-sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @layer base {
   html {
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   body {
@@ -55,11 +55,9 @@
   }
 }
 
-/* Headlines use Archivo's widest, heaviest cut; body text stays at normal width. */
 .font-display {
-  font-stretch: 125%;
-  font-weight: 800;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 @media (prefers-reduced-motion: reduce) {
