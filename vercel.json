@@ -8,5 +8,12 @@
       "maxDuration": 15,
       "excludeFiles": "{.next,node_modules,src,public,tests,supabase}/**"
     }
+  },
+  "schedules": {
+    "daily-maintenance": {
+      "schedule": "23 10 * * *",
+      "path": "/cron/daily",
+      "requestMethod": "GET"
+    }
   }
 }

@@ -322,7 +322,13 @@ def queue_filter(queue_ids: list[int]) -> dict[str, str]:
     return {"queue_id": f"in.({','.join(str(queue_id) for queue_id in queue_ids)})"} if queue_ids else {}
 
 
-def fetch_participant_rows(puuid: str, queue_ids: list[int], limit: int) -> list[dict[str, Any]]:
+def champion_filter(champion_id: int | None) -> dict[str, str]:
+    return {"champion_id": f"eq.{champion_id}"} if champion_id else {}
+
+
+def fetch_participant_rows(
+    puuid: str, queue_ids: list[int], limit: int, champion_id: int | None = None
+) -> list[dict[str, Any]]:
     return supabase_get(
         "match_participants",
         {
@@ -331,6 +337,7 @@ def fetch_participant_rows(puuid: str, queue_ids: list[int], limit: int) -> list
             "order": "game_start.desc",
             "limit": str(limit),
             **queue_filter(queue_ids),
+            **champion_filter(champion_id),
         },
     )
 
@@ -364,7 +371,7 @@ TIMELINE_COLUMNS = "match_id,puuid,gold_10,cs_10,xp_10,gold_15,cs_15,xp_15"
 
 
 def fetch_insight_rows(
-    puuid: str, queue_ids: list[int]
+    puuid: str, queue_ids: list[int], champion_id: int | None = None
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     player_rows = supabase_get(
         "match_participants",
@@ -374,6 +381,7 @@ def fetch_insight_rows(
             "order": "game_start.desc",
             "limit": str(INSIGHT_GAME_LIMIT),
             **queue_filter(queue_ids),
+            **champion_filter(champion_id),
         },
     )
     if not player_rows:
@@ -411,9 +419,10 @@ def player_stats(
     response: Response,
     queue: Annotated[list[int], Query(max_length=10)] = [],  # noqa: B006 (FastAPI copies defaults)
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    champion: Annotated[int | None, Query(ge=1, le=100000)] = None,
 ) -> PlayerStats:
     try:
-        rows = fetch_participant_rows(puuid, queue, limit)
+        rows = fetch_participant_rows(puuid, queue, limit, champion)
     except ConfigurationError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     except httpx.HTTPError as error:
@@ -430,10 +439,11 @@ def player_insights(
     response: Response,
     queue: Annotated[list[int], Query(max_length=10)] = [],  # noqa: B006 (FastAPI copies defaults)
     tz: Annotated[str | None, Query(max_length=64, pattern=r"^[A-Za-z0-9_+\-/]+$")] = None,
+    champion: Annotated[int | None, Query(ge=1, le=100000)] = None,
 ) -> PlayerInsights:
     """Trends, early-game lane stats, matchups, patches, schedule and teammates."""
     try:
-        player_rows, lobby_rows, timeline_rows = fetch_insight_rows(puuid, queue)
+        player_rows, lobby_rows, timeline_rows = fetch_insight_rows(puuid, queue, champion)
     except ConfigurationError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     except httpx.HTTPError as error:
@@ -448,7 +458,9 @@ MatchIdParam = Annotated[str, PathParam(pattern=r"^[A-Z0-9]{2,5}_[0-9]{5,15}$")]
 
 def fetch_match_rows(match_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     match_rows = supabase_get("matches", {"select": "raw_data", "match_id": f"eq.{match_id}", "limit": "1"})
-    if not match_rows:
+    # raw_data is null for an old match whose payload was trimmed; the match page
+    # downloads it again before asking for insights.
+    if not match_rows or match_rows[0]["raw_data"] is None:
         return None, None
     detail_rows = supabase_get("match_timeline_details", {"select": "details", "match_id": f"eq.{match_id}", "limit": "1"})
     return match_rows[0]["raw_data"], (detail_rows[0]["details"] if detail_rows else None)

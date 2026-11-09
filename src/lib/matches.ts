@@ -303,7 +303,7 @@ const historyColumns =
 
 export async function getMatchHistory(
   puuid: string,
-  options: { queueIds: readonly number[]; limit?: number },
+  options: { queueIds: readonly number[]; limit?: number; championId?: number },
 ): Promise<HistoryEntry[]> {
   const db = getDb()
 
@@ -314,6 +314,7 @@ export async function getMatchHistory(
     .order('game_start', { ascending: false })
     .limit(options.limit ?? matchesPerIngest)
   if (options.queueIds.length > 0) query = query.in('queue_id', [...options.queueIds])
+  if (options.championId) query = query.eq('champion_id', options.championId)
 
   const { data: playerRows, error } = await query
   if (error) throw new DatabaseError('load match history', error)
@@ -354,14 +355,20 @@ export async function getMatchDetail(matchId: string): Promise<RiotMatch | null>
     .maybeSingle()
   if (error) throw new DatabaseError('load a match', error)
 
-  if (data) return matchSchema.parse(data.raw_data)
+  // raw_data is null when the storage cleanup trimmed an old match.
+  if (data?.raw_data) return matchSchema.parse(data.raw_data)
 
   const region = getRegionFromMatchId(matchId)
   if (!region) return null
 
   try {
     const match = await getMatch(region.matchRoute, matchId)
-    await storeMatch(match)
+    if (data) {
+      const { error: restoreError } = await getDb().from('matches').update({ raw_data: match }).eq('match_id', matchId)
+      if (restoreError) throw new DatabaseError('restore a trimmed match', restoreError)
+    } else {
+      await storeMatch(match)
+    }
     return match
   } catch (fetchError) {
     if (isRiotError(fetchError, 'not_found')) return null
