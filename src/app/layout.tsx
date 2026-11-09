@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
+import { Analytics } from '@vercel/analytics/next'
 import '@fontsource-variable/cinzel'
 import '@fontsource/barlow/400.css'
 import '@fontsource/barlow/500.css'
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             </p>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   )
